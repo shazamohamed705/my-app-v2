@@ -55,12 +55,14 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
       
       urlObj.search = params.toString();
       
-      // Use appropriate proxy based on environment
+      // Use proxy for development, direct URL for production
       if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-        if (isVercelProduction()) {
-          targetUrl = `/api/proxy${urlObj.pathname}${urlObj.search}`;
-        } else {
+        if (process.env.NODE_ENV === 'development') {
+          // Use Vite proxy for development to avoid CORS
           targetUrl = `/__mbus__${urlObj.pathname}${urlObj.search}`;
+        } else {
+          // Use direct URL for production
+          targetUrl = urlObj.toString();
         }
       } else {
         targetUrl = urlObj.toString();
@@ -226,14 +228,14 @@ export const normalizeImageUrl = (url) => {
       return null;
     }
 
-    // Enhanced proxy detection for Vercel
+    // Use proxy for development, direct URL for production
     if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-      if (isVercelProduction()) {
-        // Use Vercel proxy for production
-        return `/api/proxy${urlObj.pathname}${urlObj.search}`;
-      } else {
-        // Use Vite proxy for development
+      if (process.env.NODE_ENV === 'development') {
+        // Use Vite proxy for development to avoid CORS
         return `/__mbus__${urlObj.pathname}${urlObj.search}`;
+      } else {
+        // Use direct URL for production
+        return urlObj.toString();
       }
     }
 
@@ -260,18 +262,6 @@ export const isDataUrl = (url) => {
   return typeof url === 'string' && url.startsWith('data:');
 };
 
-/**
- * Check if we're running on Vercel production
- * @returns {boolean} True if on Vercel production
- */
-export const isVercelProduction = () => {
-  if (typeof window === 'undefined') return false;
-  
-  return process.env.NODE_ENV === 'production' || 
-         window.location.hostname.includes('vercel.app') || 
-         window.location.hostname.includes('vercel.com') ||
-         process.env.VERCEL === '1';
-};
 
 /**
  * Enhanced image error handling with fallback

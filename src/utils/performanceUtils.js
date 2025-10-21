@@ -167,13 +167,16 @@ export const optimizedImageLoader = async (imageUrls, options = {}) => {
       }
       
       try {
-        // Use proxy for my-bus.storage-te.com to avoid CORS
+        // Use proxy for development, direct URL for production
         let fetchUrl = url;
         if (url.includes('my-bus.storage-te.com')) {
-          if (process.env.NODE_ENV === 'production') {
-            fetchUrl = `/api/proxy${new URL(url).pathname}${new URL(url).search}`;
+          if (process.env.NODE_ENV === 'development') {
+            // Use Vite proxy for development to avoid CORS
+            const urlObj = new URL(url);
+            fetchUrl = `/__mbus__${urlObj.pathname}${urlObj.search}`;
           } else {
-            fetchUrl = `/__mbus__${new URL(url).pathname}${new URL(url).search}`;
+            // Use direct URL for production
+            fetchUrl = url;
           }
         }
         
