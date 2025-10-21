@@ -14,7 +14,8 @@ import {
   smartRefreshImage,
   startAutoRefresh,
   cleanupImageCache,
-  monitorImagePerformance
+  monitorImagePerformance,
+  isVercelProduction
 } from "../utils/imageUtils";
 import { monitorPerformance, processBatch } from "../utils/performanceUtils";
 import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats, checkResourceAvailability } from "../utils/vercelOptimizations";
@@ -291,8 +292,8 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
       try {
         const urlObj = new URL(normalizedUrl);
         if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-          // Use Vercel proxy for production to avoid CORS issues
-          if (process.env.NODE_ENV === 'production') {
+          if (isVercelProduction()) {
+            // Use Vercel proxy for production to avoid CORS issues
             return `/api/proxy${urlObj.pathname}${urlObj.search}`;
           } else {
             // Use Vite proxy for development

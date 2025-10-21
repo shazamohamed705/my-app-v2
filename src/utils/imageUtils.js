@@ -59,7 +59,7 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
       
       // Use appropriate proxy based on environment
       if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-        if (process.env.NODE_ENV === 'production') {
+        if (isVercelProduction()) {
           targetUrl = `/api/proxy${urlObj.pathname}${urlObj.search}`;
         } else {
           targetUrl = `/__mbus__${urlObj.pathname}${urlObj.search}`;
@@ -222,6 +222,17 @@ export const normalizeImageUrl = (url) => {
       return null;
     }
 
+    // Enhanced proxy detection for Vercel
+    if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+      if (isVercelProduction()) {
+        // Use Vercel proxy for production
+        return `/api/proxy${urlObj.pathname}${urlObj.search}`;
+      } else {
+        // Use Vite proxy for development
+        return `/__mbus__${urlObj.pathname}${urlObj.search}`;
+      }
+    }
+
     // Add cache busting for production
     if (process.env.NODE_ENV === 'production') {
       const params = new URLSearchParams(urlObj.search);
@@ -243,6 +254,19 @@ export const normalizeImageUrl = (url) => {
  */
 export const isDataUrl = (url) => {
   return typeof url === 'string' && url.startsWith('data:');
+};
+
+/**
+ * Check if we're running on Vercel production
+ * @returns {boolean} True if on Vercel production
+ */
+export const isVercelProduction = () => {
+  if (typeof window === 'undefined') return false;
+  
+  return process.env.NODE_ENV === 'production' || 
+         window.location.hostname.includes('vercel.app') || 
+         window.location.hostname.includes('vercel.com') ||
+         process.env.VERCEL === '1';
 };
 
 /**

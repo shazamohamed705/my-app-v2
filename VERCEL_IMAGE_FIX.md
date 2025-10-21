@@ -1,75 +1,40 @@
 # إصلاح مشكلة الصور على Vercel
 
-## المشكلة الأصلية
-الصور كانت تعمل محلياً ولكن لا ترفع على Vercel بسبب:
-1. عدم دعم Vercel لـ proxy configuration
-2. مشاكل CORS مع الصور الخارجية
-3. عدم وجود معالجة أخطاء مناسبة للصور
+## المشكلة
+الصور على Vercel كانت تظهر بمسارات خاطئة وليست نفس المسارات الموجودة على السيرفر المحلي.
 
 ## الحلول المطبقة
 
-### 1. تحسين معالجة الصور (`src/utils/imageUtils.js`)
-- **دالة `loadImageAsDataUrl`**: تحميل الصور مع إعادة المحاولة والوقت المحدد
-- **دالة `preloadImages`**: تحميل الصور في مجموعات لتحسين الأداء
-- **دالة `normalizeImageUrl`**: تطبيع URLs مع cache busting
-- **دالة `isDataUrl`**: فحص ما إذا كان URL هو data URL
-- **دالة `handleImageError`**: معالجة أخطاء الصور مع fallback
+### 1. تحسين دالة `isVercelProduction()`
+- إضافة دالة جديدة للتحقق من البيئة
+- دعم أفضل للكشف عن Vercel production
+- دعم متغيرات البيئة `VERCEL=1`
 
-### 2. تحسين مكون TransportContract
-- استخدام الأدوات المحسنة لمعالجة الصور
-- تحسين `safeImgSrc` للعمل مع Vercel
-- تحسين `toDataUrl` مع إعادة المحاولة
-- معالجة الصور في مجموعات لتحسين الأداء
+### 2. تحديث `normalizeImageUrl()`
+- استخدام الـ proxy الصحيح بناءً على البيئة
+- `/api/proxy/` للـ production على Vercel
+- `/__mbus__/` للـ development المحلي
 
-### 3. تحسين إعدادات Vercel (`vercel.json`)
-- إضافة headers للأمان
-- إعدادات CORS للـ API
-- زيادة timeout للوظائف
+### 3. تحسين `vercel.json`
+- إضافة headers محسنة للصور
+- تحسين الـ cache control
+- دعم أفضل للـ CORS
 
-### 4. تحسين إعدادات html2canvas
-- زيادة `imageTimeout` إلى 15000ms
-- إضافة `foreignObjectRendering` للتصميمات المعقدة
-- تحسين إعدادات النافذة
+### 4. تحديث `safeImgSrc()`
+- استخدام الدالة الجديدة `isVercelProduction()`
+- تحسين الكود وإزالة التكرار
 
-## الميزات الجديدة
+## الملفات المحدثة
+- `src/utils/imageUtils.js` - إضافة دالة `isVercelProduction()` وتحسين الدوال الموجودة
+- `src/TransportContract/TransportContract.jsx` - تحديث `safeImgSrc()` لاستخدام الدالة الجديدة
+- `vercel.json` - تحسين إعدادات الـ proxy والـ headers
 
-### معالجة الأخطاء المحسنة
-- إعادة المحاولة التلقائية (3 مرات)
-- timeout قابل للتخصيص
-- معالجة أخطاء مفصلة
+## كيفية العمل
+1. في البيئة المحلية: يستخدم `/__mbus__/` proxy
+2. على Vercel: يستخدم `/api/proxy/` proxy
+3. الكشف التلقائي للبيئة باستخدام `isVercelProduction()`
 
-### تحسين الأداء
-- تحميل الصور في مجموعات
-- cache busting للصور
-- تجنب تحميل الصور المكررة
-
-### دعم Vercel
-- URLs مباشرة للإنتاج
-- proxy للبيئة التطوير
-- معالجة CORS محسنة
-
-## الاستخدام
-
-```javascript
-import { loadImageAsDataUrl, preloadImages } from '../utils/imageUtils';
-
-// تحميل صورة واحدة
-const dataUrl = await loadImageAsDataUrl(imageUrl, {
-  timeout: 10000,
-  retries: 3,
-  cacheBust: true
-});
-
-// تحميل عدة صور
-const imageMap = await preloadImages(imageUrls, {
-  batchSize: 2,
-  timeout: 15000
-});
-```
-
-## النتائج المتوقعة
-- ✅ الصور تعمل على Vercel
-- ✅ تحسين الأداء
-- ✅ معالجة أخطاء أفضل
-- ✅ دعم CORS محسن
-- ✅ تجربة مستخدم أفضل
+## النتيجة المتوقعة
+- الصور تعمل بشكل صحيح على Vercel
+- نفس المسارات تعمل في البيئة المحلية والإنتاجية
+- تحسين الأداء مع الـ caching المناسب

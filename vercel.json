@@ -3,7 +3,17 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/proxy/(.*)", "destination": "https://my-bus.storage-te.com/$1" },
+    { 
+      "source": "/api/proxy/(.*)", 
+      "destination": "https://my-bus.storage-te.com/$1",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": "image/.*"
+        }
+      ]
+    },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
@@ -20,7 +30,15 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization"
+          "value": "Content-Type, Authorization, Accept, Cache-Control"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
         }
       ]
     },
