@@ -13,11 +13,13 @@ export default defineConfig({
     // تحسينات الأداء للبناء
     minify: 'terser',
     sourcemap: false,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          pdf: ['html2pdf.js', 'jspdf', 'html2canvas']
+          pdf: ['html2pdf.js', 'jspdf', 'html2canvas'],
+          router: ['react-router-dom']
         }
       }
     }
