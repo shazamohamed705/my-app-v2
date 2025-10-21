@@ -2,8 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 // Add useRef for PDF capture container
 import { useRef } from "react";
 import { useParams } from "react-router-dom";
- import "../styles/TransportContract.css"; import logo from "../assets/logo.png";
+import "../styles/TransportContract.css"; 
+import logo from "../assets/logo.png";
 import html2pdf from "html2pdf.js";
+import { loadImageAsDataUrl, preloadImages, normalizeImageUrl, isDataUrl } from "../utils/imageUtils";
+import { monitorPerformance, processBatch } from "../utils/performanceUtils";
+import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/vercelOptimizations";
  const TransportContract = () => {
   const { id } = useParams(); 
 
@@ -18,6 +22,10 @@ import html2pdf from "html2pdf.js";
   const isSharingRef = useRef(false);
   const shareBtnRef = useRef(null);
   const autoOpenedRef = useRef(false);
+  
+  // Initialize Vercel optimizations
+  const optimizations = useMemo(() => initializeOptimizations(), []);
+  
   // Removed client-side translation to avoid CORS; rely on API-provided English fields
 
   // Unified company fields from pdfData or vehicle - optimized with fallback values
@@ -222,39 +230,31 @@ import html2pdf from "html2pdf.js";
   const startLocation = useMemo(() => trip?.departure_location, [trip?.departure_location]);
   const finishLocation = useMemo(() => trip?.destination_location, [trip?.destination_location]);
 
-  // Optimized URL proxy mapping with memoization for better performance
-  const toProxyUrl = useMemo(() => {
-    const proxyHost = 'my-bus.storage-te.com';
-    const proxyPrefix = '/__mbus__';
-    
-    return (url) => {
-    if (!url) return null;
-      
-    try {
-      const u = new URL(url, window.location.origin);
-        if (u.hostname.includes(proxyHost)) {
-          return `${proxyPrefix}${u.pathname}${u.search}`;
-      }
-      return url;
-    } catch {
-      return url;
-    }
-  };
-  }, []);
-
-  // Optimized safe image source - returns null if no image from API
+  // Enhanced image URL handling with better CORS support and fallback
   const safeImgSrc = useMemo(() => {
     return (url, fallback) => {
       // Early return for falsy values - no fallback images
       if (!url) return null;
       
-      // Check if string is not empty after trimming
-      const trimmedUrl = String(url).trim();
-      if (!trimmedUrl) return null;
+      // Use the enhanced normalization function
+      const normalizedUrl = normalizeImageUrl(url);
+      if (!normalizedUrl) return null;
       
-      return toProxyUrl(trimmedUrl);
+      // For development, use proxy if available
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          const urlObj = new URL(normalizedUrl);
+          if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+            return `/__mbus__${urlObj.pathname}${urlObj.search}`;
+          }
+        } catch (error) {
+          console.warn('Error processing URL for proxy:', normalizedUrl, error);
+        }
+      }
+      
+      return normalizedUrl;
     };
-  }, [toProxyUrl]);
+  }, []);
 
   // Function to ensure Arabic fonts are loaded before PDF generation
   const loadArabicFonts = async () => {
@@ -276,15 +276,16 @@ import html2pdf from "html2pdf.js";
 
   // Generate a PDF Blob from the whole contract using html2pdf.js
   const generatePdfBlob = async () => {
-    const element = contractRef.current;
-    if (!element) {
-      console.error("Contract container not found");
-      throw new Error("Contract container not found");
-    }
+    return await monitorPerformance('PDF Generation', async () => {
+      const element = contractRef.current;
+      if (!element) {
+        console.error("Contract container not found");
+        throw new Error("Contract container not found");
+      }
 
-    console.log("Starting PDF generation...");
-    console.log("Element found:", element);
-    console.log("Element content:", element.innerHTML.substring(0, 200));
+      console.log("Starting PDF generation...");
+      console.log("Element found:", element);
+      console.log("Element content:", element.innerHTML.substring(0, 200));
 
     // Ensure Arabic fonts are loaded before PDF generation
     await loadArabicFonts();
@@ -302,43 +303,47 @@ import html2pdf from "html2pdf.js";
       return totalHeight > usableHeightPx;
     };
 
-    // Helper: fetch image and convert to data URL
+    // Enhanced helper: fetch image and convert to data URL with better error handling
     const toDataUrl = async (src) => {
-      try {
-        const target = toProxyUrl(src) || src;
-        const response = await fetch(target, { mode: 'cors', credentials: 'omit', cache: 'no-cache' });
-        if (!response.ok) throw new Error('img fetch failed');
-        const blob = await response.blob();
-        return await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(blob);
-        });
-      } catch {
-        return null;
+      // Skip if already a data URL
+      if (isDataUrl(src)) {
+        return src;
       }
+      
+      // Use the enhanced image loading utility with optimized config
+      return await loadImageAsDataUrl(src, optimizations.image);
     };
 
-    // Inline all images as data URLs to avoid CORS/render issues in html2canvas
+    // Enhanced image processing with better error handling and timeout
     const imgs = Array.from(element.querySelectorAll('img'));
     const originalSrcs = new Map();
-    await Promise.all(
-      imgs.map(async (img) => {
-        // Wait load/error to stabilize dimensions first
-        if (!img.complete) {
-          await new Promise((r) => {
-            img.onload = r; img.onerror = r;
-          });
-        }
-        const src = img.getAttribute('src');
-        if (!src) return;
-        const dataUrl = await toDataUrl(src);
-        if (dataUrl) {
-          originalSrcs.set(img, src);
-          img.setAttribute('src', dataUrl);
-        }
-      })
-    );
+    
+    // Collect all image URLs for batch processing
+    const imageUrls = imgs
+      .map(img => img.getAttribute('src'))
+      .filter(src => src && !isDataUrl(src));
+    
+    console.log(`Processing ${imageUrls.length} images for PDF generation...`);
+    
+    // Preload all images in batches for better performance
+    const imageDataUrls = await preloadImages(imageUrls, optimizations.image);
+    
+    // Apply the converted images to the DOM
+    imgs.forEach(img => {
+      const src = img.getAttribute('src');
+      if (!src || isDataUrl(src)) return;
+      
+      const dataUrl = imageDataUrls.get(src);
+      if (dataUrl) {
+        originalSrcs.set(img, src);
+        img.setAttribute('src', dataUrl);
+        console.log(`Successfully converted image: ${src.substring(0, 50)}...`);
+      } else {
+        console.warn(`Failed to convert image: ${src}`);
+        // Hide broken images
+        img.style.display = 'none';
+      }
+    });
 
     // Ensure web fonts are loaded for crisp text before snapshot
     if (document.fonts && document.fonts.ready) {
@@ -346,20 +351,8 @@ import html2pdf from "html2pdf.js";
     }
 
     const options = {
-      margin: [2, 2, 2, 2],
-      filename: `contract-${trip?.id || "trip"}.pdf`,
-      image: { type: "jpeg", quality: 0.92 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        imageTimeout: 10000,
-        removeContainer: true
-      },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"] },
+      ...optimizations.pdf,
+      filename: `contract-${trip?.id || "trip"}.pdf`
     };
 
     // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
@@ -390,21 +383,22 @@ import html2pdf from "html2pdf.js";
     element.style.zoom = '';
     element.classList.remove('pdf-mode');
 
-    return blob;
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      
-      // Restore original src values even on error
-      originalSrcs.forEach((src, img) => {
-        img.setAttribute('src', src);
-      });
+      return blob;
+      } catch (error) {
+        console.error("PDF generation failed:", error);
+        
+        // Restore original src values even on error
+        originalSrcs.forEach((src, img) => {
+          img.setAttribute('src', src);
+        });
 
-      // Unlock layout
-      element.style.zoom = '';
-      element.classList.remove('pdf-mode');
-      
-      throw error;
-    }
+        // Unlock layout
+        element.style.zoom = '';
+        element.classList.remove('pdf-mode');
+        
+        throw error;
+      }
+    });
   };
 
   // Share the generated PDF via Web Share API when available; fallback otherwise
