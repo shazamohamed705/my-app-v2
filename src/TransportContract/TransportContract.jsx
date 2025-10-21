@@ -5,7 +5,15 @@ import { useParams } from "react-router-dom";
 import "../styles/TransportContract.css"; 
 import logo from "../assets/logo.png";
 import html2pdf from "html2pdf.js";
-import { loadImageAsDataUrl, preloadImages, normalizeImageUrl, isDataUrl } from "../utils/imageUtils";
+import { 
+  loadImageAsDataUrl, 
+  preloadImages, 
+  normalizeImageUrl, 
+  isDataUrl,
+  forceRefreshAllImages,
+  smartRefreshImage,
+  startAutoRefresh
+} from "../utils/imageUtils";
 import { monitorPerformance, processBatch } from "../utils/performanceUtils";
 import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/vercelOptimizations";
  const TransportContract = () => {
@@ -22,6 +30,7 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
   const isSharingRef = useRef(false);
   const shareBtnRef = useRef(null);
   const autoOpenedRef = useRef(false);
+  const autoRefreshRef = useRef(null);
   
   // Initialize Vercel optimizations
   const optimizations = useMemo(() => initializeOptimizations(), []);
@@ -178,6 +187,28 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
     fetchData();
   }, [id]);
 
+  // Auto-refresh images when data is loaded
+  useEffect(() => {
+    if (trip && vehicle && !autoRefreshRef.current) {
+      console.log('🔄 Starting auto-refresh for images...');
+      
+      // Start auto-refresh every 2 minutes
+      autoRefreshRef.current = startAutoRefresh({
+        interval: 120000, // 2 minutes
+        selector: 'img',
+        maxRetries: 5
+      });
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (autoRefreshRef.current) {
+        autoRefreshRef.current();
+        autoRefreshRef.current = null;
+      }
+    };
+  }, [trip, vehicle]);
+
   // Open or download PDF مباشرة عند اكتمال البيانات
   useEffect(() => {
     const ready = Boolean(trip && vehicle);
@@ -328,8 +359,28 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
     
     console.log(`Processing ${imageUrls.length} images for PDF generation...`);
     
-    // Preload all images in batches for better performance
-    const imageDataUrls = await preloadImages(imageUrls, optimizations.image);
+    // Enhanced image loading with smart refresh
+    const imageDataUrls = new Map();
+    
+    // Process images with smart refresh for better cache busting
+    for (const url of imageUrls) {
+      try {
+        const dataUrl = await smartRefreshImage(url, {
+          timeout: 15000,
+          retries: 3,
+          useCache: false // Force fresh load for PDF
+        });
+        
+        if (dataUrl) {
+          imageDataUrls.set(url, dataUrl);
+          console.log(`✅ Smart refresh successful for: ${url.substring(0, 50)}...`);
+        } else {
+          console.warn(`⚠️ Smart refresh failed for: ${url}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error in smart refresh for ${url}:`, error);
+      }
+    }
     
     // Apply the converted images to the DOM
     imgs.forEach(img => {
@@ -454,9 +505,32 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
     }
   };
  
+  // Manual image refresh function
+  const handleRefreshImages = async () => {
+    try {
+      console.log('🔄 Manual image refresh started...');
+      const success = await forceRefreshAllImages({
+        selector: 'img',
+        timeout: 10000,
+        retries: 3
+      });
+      
+      if (success) {
+        console.log('✅ Images refreshed successfully');
+        alert('تم تحديث الصور بنجاح!');
+      } else {
+        console.warn('⚠️ Some images failed to refresh');
+        alert('تم تحديث بعض الصور، قد تحتاج إلى إعادة تحميل الصفحة');
+      }
+    } catch (error) {
+      console.error('❌ Image refresh failed:', error);
+      alert('فشل في تحديث الصور، يرجى المحاولة مرة أخرى');
+    }
+  };
+
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-start", margin: "8px 0" }}>
+      <div style={{ display: "flex", justifyContent: "flex-start", margin: "8px 0", gap: "8px" }}>
         <button
           type="button"
           onClick={handleSharePdf}
@@ -472,6 +546,21 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
           }}
         >
           إرسال إلى واتساب (PDF)
+        </button>
+        <button
+          type="button"
+          onClick={handleRefreshImages}
+          style={{
+            backgroundColor: "#007bff",
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            padding: "8px 12px",
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          🔄 تحديث الصور
         </button>
       </div>
       <div ref={contractRef}>

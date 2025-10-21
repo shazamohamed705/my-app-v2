@@ -28,23 +28,29 @@ export const getImageConfig = () => {
   const baseConfig = {
     timeout: 15000,
     retries: 3,
-    cacheBust: true
+    cacheBust: true,
+    forceRefresh: false
   };
 
   if (isVercel()) {
     return {
       ...baseConfig,
-      timeout: 20000, // Longer timeout for Vercel
+      timeout: 25000, // Longer timeout for Vercel
       retries: 5, // More retries for Vercel
       batchSize: 2, // Smaller batches for Vercel
-      delay: 300 // Longer delay between batches
+      delay: 500, // Longer delay between batches
+      forceRefresh: true, // Force refresh on Vercel
+      autoRefresh: true, // Enable auto-refresh
+      refreshInterval: 120000 // 2 minutes
     };
   }
 
   return {
     ...baseConfig,
     batchSize: 3,
-    delay: 100
+    delay: 200,
+    autoRefresh: true,
+    refreshInterval: 180000 // 3 minutes for development
   };
 };
 
