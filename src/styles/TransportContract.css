@@ -1,0 +1,871 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+:root {
+  --th-color: #0e0f0f; 
+  --accent: #c91414;
+  color: #000;
+}
+* , *::before, *::after { box-sizing: border-box; }
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+/* Utilities for long numbers (e.g., VAT) - optimized */
+.nowrap-ellips { 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  display: inline-block; 
+  max-width: 100%; 
+}
+.ltr-number { 
+  direction: ltr; 
+  unicode-bidi: plaintext; 
+}
+
+/* تصحيح محاذاة الأقواس للرقم الضريبي */
+.tax-brackets {
+  display: inline;
+  vertical-align: baseline;
+}
+
+/* إصلاح محاذاة الأرقام داخل الأقواس */
+.tax-number-container {
+  display: inline;
+  vertical-align: baseline;
+}
+.contract-outer {
+  margin: 2px auto;
+  padding: 8px;
+  max-width: 900px;
+  background: #fff url('/logo-removebg-preview.png') no-repeat center center;
+  background-size: contain;
+  background-attachment: fixed;
+  border: 2px solid #fbf7f7;
+  font-family: "Cairo", "Arial", sans-serif;
+  direction: rtl;
+  position: relative;
+}
+
+/* إضافة خلفية شفافة للمحتوى لضمان وضوح النص */
+.contract-inner {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* PDF locking to preserve exact layout on export */
+.pdf-mode {
+  font-size: 80%; /* تقليل أقوى ليلتزم بصفحتين */
+  line-height: 1.25;
+}
+
+.pdf-mode .contract-outer,
+.pdf-mode.contract-outer {
+  width: 680px; /* تضييق إضافي لتقليل الارتفاع الإجمالي */
+  max-width: 680px;
+  margin: 0 auto;
+  transform: none !important;
+  box-shadow: none !important;
+}
+/* تقليل الحشوات الداخلية لتصغير الارتفاع */
+.pdf-mode .contract-inner { padding: 6px !important; }
+.pdf-mode .contract-body { padding: 0 !important; }
+
+/* Remove effects that can cause raster differences in PDF */
+.pdf-mode * {
+  box-shadow: none !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+/* الهيدر */
+/* خصيصًا للهيدر */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3px;
+  gap: 15px; /* مسافة متوازنة */
+  flex-wrap: nowrap; /* منع الالتفاف - سطر واحد فقط */
+}
+
+.logo-box {
+  flex: 1;
+  text-align: right;
+}
+
+.logo-text {
+  line-height: 1.6;
+}
+
+.center-title {
+  flex: 1;
+  text-align: center;
+}
+
+.center-title .title-logo {
+  width: 140px;
+  margin-bottom: 0;
+  /* Ensure logo is visible in PDF */
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.main-title {
+  color: red;
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 0;
+}
+
+.sub-title {
+  font-size: 12px;
+  margin-top: 0;
+}
+
+.company-info {
+  flex: 1;
+  text-align: left;
+  line-height: 1.6;
+}
+
+
+/* صف التاريخ ورقم العقد */
+.meta-row {
+  display: flex;
+  justify-content: space-between; /* يمين - وسط - شمال */
+  align-items: center;
+  margin: 10px 0;
+  font-size: 12px;
+  flex-wrap: wrap; /* التفاف العناصر عند ضيق العرض */
+}
+
+.meta-item {
+  margin: 0;
+  font-weight: bold;
+  flex: 1; /* كل عنصر ياخد مساحة متساوية */
+  text-align: center;
+}
+
+.meta-item.right {
+  text-align: right;
+}
+
+.meta-item.center {
+  text-align: center;
+}
+
+.meta-item.left {
+  text-align: left;
+}
+
+.red-text {
+  color: red;
+}
+
+
+
+.contract-intro {
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: justify;
+  color: #000;
+}
+
+.my-table.first-party {
+  width: 100%;              
+  border-collapse: collapse;
+  margin-top: 15px;
+  font-size: 11px;
+  table-layout: fixed; 
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border: 4px double #000;        
+  min-width: 100%;
+}
+
+.my-table.first-party th,
+.my-table.first-party td {
+  border: 4px double #000;
+  padding: 8px 10px;
+  text-align: center;
+  vertical-align: middle;
+  color: #000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: auto;
+  box-sizing: border-box;
+}
+
+/* الصف الأول */
+.my-table.first-party tr:first-child th,
+.my-table.first-party tr:first-child td {
+  border-top: 4px double #000;
+}
+
+/* الصف الأخير */
+.my-table.first-party tr:last-child th,
+.my-table.first-party tr:last-child td {
+  border-bottom: 4px double #000;
+}
+
+/* العمود الأول */
+.my-table.first-party th:first-child,
+.my-table.first-party td:first-child {
+  border-left: 4px double #000;
+}
+
+/* العمود الأخير */
+.my-table.first-party th:last-child,
+.my-table.first-party td:last-child {
+  border-right: 4px double #000;
+}
+
+/* إجبار الجدول على أخذ العرض كامل - optimized */
+.my-table.first-party colgroup {
+  width: 100%;
+}
+
+.my-table.first-party col {
+  width: auto;
+}
+.car-trips {
+  width: 100%;              
+  border-collapse: collapse; 
+  margin-top: 15px;           
+  font-size: 12px;
+  text-align: center;         
+}
+
+.car-trips th,
+.car-trips td {
+  border: 1px solid #000;     
+  padding: 8px 12px;        
+  color: #000;
+}
+
+.car-trips th {
+  background: transparent;        
+  font-weight: bold;
+}
+
+.car-trips td {
+  background: transparent;
+}
+
+/* تحسين شكل جدول المسار */
+.car-trips th,
+.car-trips td {
+  position: relative;
+}
+
+.car-trips .label-ar {
+  color: #1e88e5;
+  font-weight: bold;
+}
+
+.car-trips .badge-start,
+.car-trips .badge-finish {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  color: #fff;
+}
+.car-trips .badge-start { background: #2e7d32; }
+.car-trips .badge-finish { background: #c62828; }
+
+.car-trips .dashed-right { border-right: 3px dashed #000 !important; }
+.car-trips .dashed-left  { border-left: 3px dashed #000 !important; }
+
+/* إزالة الحدود المتقطعة عن الحواف الخارجية للجدول */
+.car-trips thead tr th:first-child,
+.car-trips tbody tr td:first-child {
+  border-right: 2px solid #000 !important; /* الحافة اليمنى الخارجية صلبة */
+}
+.car-trips thead tr th:last-child,
+.car-trips tbody tr td:last-child {
+  border-left: 2px solid #000 !important; /* الحافة اليسرى الخارجية صلبة */
+}
+
+
+.image-box {
+  flex-shrink: 0;   
+}
+
+.image-box img {
+  max-width: 100%; 
+  height: auto;
+  margin-top: 15px; 
+  display: block;
+  /* Ensure images are visible in PDF */
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  z-index: 1;
+}
+/* الغلاف */
+.wrapper-box {
+  display: flex;
+  justify-content: space-between; 
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 12px;
+  direction: rtl; 
+  font-family: Arial, sans-serif;
+  font-size: 12px; 
+}
+
+/* البوكس الأساسي */
+.driver-notice-box {
+  display: flex;
+  border: 4px double  #bbb;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex: 1;
+  max-width: 70%; 
+  font-size: 12px;
+}
+
+.side-box {
+  border: 2px solid #a2bbe2;
+  background-color: #b3cce4;
+  padding: 12px 16px;
+  border-radius: 8px;
+  width: 50px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  align-self: stretch; 
+}
+
+
+.side-box h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #da3f3f;
+  font-weight: bold;
+    border-bottom: 2px solid red;
+    
+}
+
+.side-box p {
+  margin: 3px 0;
+  font-size: 12px;
+  color: #333;
+    border-bottom: 1px solid red;
+}
+
+.side-box .small {
+  font-size: 10px;
+  color: #666;
+    border-bottom: 1px solid red;
+}
+
+/* النصوص */
+.content-box {
+  padding: 8px 12px;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.content-box hr {
+  margin: 8px 0;
+  border: none;
+  border-top: 1px solid #ccc;
+}
+
+.content-box .english {
+  font-style: italic;
+  font-size: 10px;
+}
+.content-box .urdu {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  font-size: 10px;
+}
+
+
+
+.VEHICLE-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.VEHICLE-table thead th {
+  background-color: #00a0e3;
+  color: #fff;
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.VEHICLE-table tbody td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  color: #333;
+}
+
+.VEHICLE-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.VEHICLE-table tbody tr:hover {
+  background-color: #e6f7ff;
+}
+
+/* الأعمدة العربية على اليمين */
+.VEHICLE-table thead th:nth-child(n+6),
+.VEHICLE-table tbody td:nth-child(n+6) {
+  background-color: #f3faff; 
+  font-weight: bold;
+  direction: rtl;
+}
+.trip-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 900px;
+  margin: 15px auto;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  border: 2px solid #000;
+}
+
+.trip-table th,
+.trip-table td {
+  border: 2px solid #000;
+  padding: 8px;
+  vertical-align: middle;
+}
+
+/* الهيدر */
+.trip-table thead th {
+  background: #00a0e3;
+  color: #e4f6f8;
+  font-weight: bold;
+}
+
+/* صف البيانات */
+.data-row td {
+  position: relative;
+}
+
+
+.passenger-table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 900px;
+  margin: 15px auto;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  border: 2px solid #000;
+}
+
+.passenger-table th,
+.passenger-table td {
+  border: 1px solid #000;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.passenger-table thead tr:first-child th {
+  background: #fafa04;
+  color: #000;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.passenger-table thead tr:nth-child(2) th {
+  background: #e4f6f8;
+  color: #000;
+  font-weight: bold;
+}
+
+.passenger-table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.passenger-table tbody tr:hover {
+  background: #dff0ff;
+}
+
+.passenger-table td:first-child {
+  font-weight: bold;
+  color: #333;
+  background: #f1f1f1;
+  width: 60px; 
+}
+.header-image img {
+  width: 100%;       
+  height: auto;      
+  display: block;    
+  max-height: 200px;
+  object-fit: cover;
+  /* Ensure images are visible in PDF */
+  opacity: 1;
+  visibility: visible;
+  position: relative;
+  z-index: 1;
+}
+.header-image.duo {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.header-image.duo img:first-child {
+  flex: 1 1 auto; 
+  width: 75%;
+  height: 75%;
+  object-fit: contain;
+}
+.header-image.duo img:last-child {
+  flex: 0 0 25%; 
+  max-height: 140px;
+  object-fit: contain;
+  margin-left: auto;
+  transform: translateX(6px); 
+}
+
+/* إجبار فاصل قبل الصفحة الثانية فقط، ومنع فواصل أخرى */
+.pdf-mode .contract-outer { page-break-inside: avoid; break-inside: avoid; }
+.pdf-mode .contract-outer + .contract-outer { page-break-before: always; break-before: page; }
+
+/* ضغط عناصر كبيرة لتقليل الارتفاع الكلي */
+.pdf-mode .header .title-logo { width: 100px; }
+.pdf-mode .wrapper-box { margin: 8px; gap: 8px; }
+.pdf-mode .driver-notice-box { font-size: 10px; }
+.pdf-mode .passenger-table td, .pdf-mode .passenger-table th { padding: 4px; font-size: 10px; }
+.pdf-mode .trip-table td, .pdf-mode .trip-table th { padding: 4px; font-size: 10px; }
+.pdf-mode .my-table.first-party td, .pdf-mode .my-table.first-party th { padding: 4px 6px; font-size: 10px; }
+/* ضغط صور الرأس */
+.pdf-mode .header-image img { max-height: 140px !important; }
+.pdf-mode .header-image.duo img:first-child { width: 70%; height: auto; }
+.pdf-mode .header-image.duo img:last-child { max-height: 110px; }
+/* تقليل هوامش الجداول والمسافات الرأسية */
+.pdf-mode .VEHICLE-table,
+.pdf-mode .trip-table,
+.pdf-mode .passenger-table,
+.pdf-mode .my-table.first-party,
+.pdf-mode .car-trips { margin: 8px 0 !important; }
+.pdf-mode .meta-row { margin: 6px 0 !important; }
+.pdf-mode .main-title { font-size: 14px !important; }
+.pdf-mode .sub-title { font-size: 10px !important; }
+/* هواتف صغيرة: دمج وتبسيط */
+@media (max-width: 400px) {
+  .contract-outer { padding: 5px; margin: 5px; font-size: 10px; max-width: 100%; overflow-x: auto; transform: none; transform-origin: top center; }
+  .main-title { font-size: 10px; }
+  .sub-title { font-size: 8px; }
+
+  .header { gap: 3px; flex-wrap: nowrap; margin-bottom: 3px; }
+  
+  /* تصغير خط الهيدر للهواتف الصغيرة */
+  .header .logo-text { font-size: 8px; line-height: 1.2; }
+  .header .company-info { font-size: 8px; line-height: 1.2; }
+  .header .center-title .title-logo { width: 80px; }
+  .meta-row { gap: 3px; flex-wrap: nowrap; margin: 8px 0; }
+
+  /* اجعل صندوق التنبيه والصورة في صف واحد على كل الشاشات */
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 4px; padding: 4px; margin: 8px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; font-size: 9px; line-height: 1.2; text-align: right; margin: 0; }
+  .image-box { flex: 0 0 100px; max-width: 100px; text-align: center; overflow: hidden; }
+  .image-box img { max-width: 100%; height: auto; display: block; }
+  .driver-notice-box .content-box span,
+  .driver-notice-box .content-box p { font-size: 9px; display: block; margin-bottom: 3px; }
+  .image-box img { max-width: 90%; margin: 0 auto; height: auto; }
+
+  /* جداول قابلة للتمرير وتخفيف الحشوات */
+  table { display: block; width: 100%; overflow-x: auto; margin: 8px 0; }
+  table thead, table tbody, table tr { width: 100%; }
+  .my-table.first-party th, .my-table.first-party td,
+  .car-trips th, .car-trips td,
+  .trip-table th, .trip-table td,
+  .passenger-table th, .passenger-table td { font-size: 9px; padding: 3px; white-space: nowrap; }
+  .meta-row p { white-space: nowrap; font-size: 10px; }
+}
+
+/* حذف تكرار ميديا الهواتف الصغيرة: تم دمجها أعلاه */
+
+/* 401px - 600px */
+@media (min-width: 401px) and (max-width: 600px) {
+  .contract-outer { padding: 8px; margin: 5px; }
+  .main-title { font-size: 12px; }
+  .sub-title { font-size: 9px; }
+
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 6px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; }
+  .image-box { flex: 0 0 120px; max-width: 120px; }
+  .header { gap: 6px; margin-bottom: 5px; flex-wrap: nowrap; }
+  
+  /* تصغير خط الهيدر للهواتف المتوسطة */
+  .header .logo-text { font-size: 9px; line-height: 1.3; }
+  .header .company-info { font-size: 9px; line-height: 1.3; }
+  .header .center-title .title-logo { width: 100px; }
+  .meta-row { gap: 5px; margin: 10px 0; }
+
+  /* السليد */
+  .side-box {
+    flex: 0 0 30%;         /* تقريبًا ثلث العرض */
+    min-width: 100px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* صندوق التنبيه */
+  .driver-notice-box {
+    flex: 1 1 65%;         /* ياخد الباقي */
+    min-width: 150px;
+    box-sizing: border-box;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .driver-notice-box .content-box span,
+  .driver-notice-box .content-box p {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  /* الصورة */
+  .image-box {
+    width: 100%;           /* تظهر تحتهم إذا ضاق المكان */
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .image-box img {
+    max-width: 90%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .image-box { width: 100%; margin-top: 10px; }
+  .image-box img { max-width: 85%; height: auto; }
+  .my-table.first-party th, .my-table.first-party td,
+  .car-trips th, .car-trips td,
+  .trip-table th, .trip-table td,
+  .passenger-table th, .passenger-table td { font-size: 10px; padding: 4px; white-space: normal; }
+  
+  /* تحسين خط اتفاق العقد للهواتف المتوسطة */
+  .contract-row p { font-size: 10px; line-height: 1.7; font-weight: 500; }
+  .conditions p { font-size: 10px; line-height: 1.7; font-weight: 500; }
+}
+
+/* 601px - 768px */
+@media (min-width: 601px) and (max-width: 768px) {
+  .main-title { font-size: 14px; }
+  .sub-title { font-size: 10px; }
+
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 8px; margin: 8px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; }
+  .image-box { flex: 0 0 140px; max-width: 140px; }
+  .header { gap: 8px; margin-bottom: 8px; flex-wrap: nowrap; }
+  
+  /* تصغير خط الهيدر للهواتف الأكبر */
+  .header .logo-text { font-size: 10px; line-height: 1.4; }
+  .header .company-info { font-size: 10px; line-height: 1.4; }
+  .header .center-title .title-logo { width: 120px; }
+  .meta-row { gap: 8px; margin: 12px 0; }
+
+  .side-box {
+    flex: 0 0 35%;         /* تقريبًا ثلث العرض */
+    min-width: 120px;      /* أقل عرض قبل أن يلف */
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .driver-notice-box {
+    flex: 1 1 60%;         /* ياخد الباقي */
+    min-width: 150px;      /* أقل عرض قبل أن يلف */
+    box-sizing: border-box;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  .driver-notice-box .content-box span,
+  .driver-notice-box .content-box p {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  /* الصورة */
+  .image-box {
+    width: 100%;           /* تظهر تحتهم إذا ضاق المكان */
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .image-box img {
+    max-width: 90%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .my-table.first-party th, .my-table.first-party td,
+  .car-trips th, .car-trips td,
+  .trip-table th, .trip-table td,
+  .passenger-table th, .passenger-table td { font-size: 11px; padding: 6px; white-space: normal; }
+  
+  /* تحسين خط اتفاق العقد للهواتف الأكبر */
+  .contract-row p { font-size: 11px; line-height: 1.8; font-weight: 500; }
+  .conditions p { font-size: 11px; line-height: 1.8; font-weight: 500; }
+}
+
+/* شاشات عريضة: إعادة سلوك الديسكتوب الأصلي */
+@media (min-width: 769px) {
+  .header { flex-wrap: nowrap; }
+  .meta-row { flex-wrap: nowrap; }
+  /* عرض رقم الضريبة بالكامل دون اقتصاص على الديسكتوب */
+  .nowrap-ellips { white-space: nowrap; overflow: visible; text-overflow: unset; display: inline; }
+  /* استرجاع تخطيط تنبيه السائق على الديسكتوب */
+  .wrapper-box { flex-direction: row; align-items: flex-start; gap: 12px; }
+  .side-box { flex: 0 0 120px; width: 120px; }
+  .driver-notice-box { flex: 1 1 auto; max-width: none; font-size: 12px; line-height: 1.4; text-align: right; }
+  .image-box { flex: 0 0 260px; }
+  .image-box img { max-width: 260px; }
+}
+
+/* ضبط خاص لشاشات iPhone 12 تقريبًا (عرض منطقي ~390px) */
+@media (min-width: 380px) and (max-width: 400px) {
+  /* تليين العناوين والترويسات */
+  .main-title { font-size: 10px; }
+  .sub-title { font-size: 8px; }
+  .meta-row { gap: 4px; flex-wrap: wrap; margin: 6px 0; }
+  .meta-row p { white-space: normal; font-size: 9px; }
+  
+  /* تصغير خط الهيدر لـ iPhone 12 */
+  .header .logo-text { font-size: 7px; line-height: 1.1; }
+  .header .company-info { font-size: 7px; line-height: 1.1; }
+  .header .center-title .title-logo { width: 70px; }
+  .header { gap: 2px; }
+
+  /* جعل الجداول ثابتة الأعمدة وتلتف النصوص بدون تكسير حروف عربية */
+  .my-table.first-party,
+  .car-trips,
+  .trip-table,
+  .passenger-table,
+  .VEHICLE-table {
+    table-layout: fixed; /* يمنع تذبذب الأعمدة */
+    width: 100%;
+  }
+  .my-table.first-party th, .my-table.first-party td,
+  .car-trips th, .car-trips td,
+  .trip-table th, .trip-table td,
+  .passenger-table th, .passenger-table td,
+  .VEHICLE-table th, .VEHICLE-table td {
+    font-size: 10px;
+    padding: 4px 3px;
+    white-space: nowrap;          /* لا يلف الكلمات */
+    word-break: normal;           /* يمنع تكسير الحروف العربية */
+    overflow: hidden;             /* منع خروج النص */
+    text-overflow: ellipsis;      /* إظهار ... للكلمات الطويلة */
+    vertical-align: middle;
+  }
+
+  /* نسب أعمدة أساسية للجداول الشائعة لضبط الاتساع */
+  .trip-table td:nth-child(1), .trip-table th:nth-child(1) { width: 40%; }
+  .trip-table td:nth-child(2), .trip-table th:nth-child(2) { width: 12%; }
+  .trip-table td:nth-child(3), .trip-table th:nth-child(3) { width: 33%; }
+  .trip-table td:nth-child(4), .trip-table th:nth-child(4) { width: 15%; }
+
+  .passenger-table th:nth-child(1), .passenger-table td:nth-child(1) { width: 16%; }
+  .passenger-table th:nth-child(2), .passenger-table td:nth-child(2) { width: 38%; }
+  .passenger-table th:nth-child(3), .passenger-table td:nth-child(3) { width: 24%; }
+  .passenger-table th:nth-child(4), .passenger-table td:nth-child(4) { width: 22%; }
+
+  .VEHICLE-table th, .VEHICLE-table td { text-align: center; }
+
+  /* الشارات الصغيرة Start/Finish */
+  .badge-start, .badge-finish { padding: 1px 6px; font-size: 9px; }
+
+  /* الصور لا تكون صغيرة جدًا */
+  .header-image.duo img:first-child { width: 75%; height: auto; }
+  .header-image.duo img:last-child { flex: 0 0 30%; max-height: 160px; }
+  .image-box img { max-width: 100%; height: auto; }
+
+  /* إخفاء البوكس اللبني لتنبيه السائق على iPhone 12 */
+  .side-box { display: none !important; }
+  .driver-notice-box { flex: 1 1 100% !important; max-width: 100% !important; }
+  .wrapper-box { gap: 8px; }
+
+  /* تصغير الصورة أسفل صندوق السائق على iPhone 12 */
+  .wrapper-box .image-box img {
+    max-width: 180% !important;
+    max-height: 130px !important;
+    height: auto !important;
+    margin: 3px auto 0 !important;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* توحيد صندوق التنبيه لعرض كامل لتفادي الانزياح */
+  .wrapper-box { flex-direction: column; gap: 8px; }
+  .driver-notice-box { flex: 1 1 100%; max-width: 100%; width: 100%; }
+  .side-box { width: 100%; align-self: auto; }
+
+  /* ضبط دقيق لجدول الطرف الأول والثاني (4 أعمدة) - أعمدة أوسع */
+  .my-table.first-party { 
+    border-width: 2px; 
+    width: 100% !important;
+    table-layout: fixed !important;
+    min-width: 100% !important;
+  }
+  .my-table.first-party th, .my-table.first-party td { 
+    border-width: 1px; 
+    text-align: center; 
+    box-sizing: border-box;
+    font-size: 9px;
+    padding: 3px 2px;
+  }
+  .my-table.first-party td:nth-child(1), .my-table.first-party th:nth-child(1) { width: 35% !important; }
+  .my-table.first-party td:nth-child(2), .my-table.first-party th:nth-child(2) { width: 45% !important; }
+  .my-table.first-party td:nth-child(3), .my-table.first-party th:nth-child(3) { width: 10% !important; }
+  .my-table.first-party td:nth-child(4), .my-table.first-party th:nth-child(4) { width: 10% !important; }
+  /* تجاوز أي colgroup inline داخل JSX */
+  .my-table.first-party col:nth-child(1) { width: 35% !important; }
+  .my-table.first-party col:nth-child(2) { width: 45% !important; }
+  .my-table.first-party col:nth-child(3) { width: 10% !important; }
+  .my-table.first-party col:nth-child(4) { width: 10% !important; }
+  .my-table.first-party td, .my-table.first-party th { 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    white-space: nowrap;
+  }
+
+  /* جدول بيانات النقل car-trips (4 أعمدة) - أعمدة أوسع */
+  .car-trips { table-layout: fixed; width: 100%; }
+  .car-trips th, .car-trips td { border-width: 1px; padding: 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+  .car-trips thead th:nth-child(1), .car-trips tbody td:nth-child(1) { width: 10%; }
+  .car-trips thead th:nth-child(2), .car-trips tbody td:nth-child(2) { width: 40%; }
+  .car-trips thead th:nth-child(3), .car-trips tbody td:nth-child(3) { width: 10%; }
+  .car-trips thead th:nth-child(4), .car-trips tbody td:nth-child(4) { width: 40%; }
+  .car-trips col:nth-child(1) { width: 10% !important; }
+  .car-trips col:nth-child(2) { width: 40% !important; }
+  .car-trips col:nth-child(3) { width: 10% !important; }
+  .car-trips col:nth-child(4) { width: 40% !important; }
+  .badge-start, .badge-finish { margin-inline-start: 3px; }
+  .label-ar { white-space: nowrap; }
+
+  /* جدول مسار الرحلة trip-table - أعمدة أوسع */
+  .trip-table { table-layout: fixed; }
+  .trip-table th, .trip-table td { border-width: 1px; padding: 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+  .trip-table th[colspan="3"] { white-space: nowrap; }
+  .trip-table col:nth-child(1) { width: 35% !important; }
+  .trip-table col:nth-child(2) { width: 15% !important; }
+  .trip-table col:nth-child(3) { width: 35% !important; }
+  .trip-table col:nth-child(4) { width: 15% !important; }
+}
