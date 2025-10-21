@@ -5,19 +5,6 @@ import { useParams } from "react-router-dom";
 import "../styles/TransportContract.css"; 
 import logo from "../assets/logo.png";
 import html2pdf from "html2pdf.js";
-import { 
-  loadImageAsDataUrl, 
-  preloadImages, 
-  normalizeImageUrl, 
-  isDataUrl,
-  forceRefreshAllImages,
-  smartRefreshImage,
-  startAutoRefresh,
-  cleanupImageCache,
-  monitorImagePerformance
-} from "../utils/imageUtils";
-import { monitorPerformance, processBatch } from "../utils/performanceUtils";
-import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats, checkResourceAvailability } from "../utils/vercelOptimizations";
  const TransportContract = () => {
   const { id } = useParams(); 
 
@@ -34,8 +21,6 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
   const autoOpenedRef = useRef(false);
   const autoRefreshRef = useRef(null);
   
-  // Initialize Vercel optimizations
-  const optimizations = useMemo(() => initializeOptimizations(), []);
   
   // Removed client-side translation to avoid CORS; rely on API-provided English fields
 
@@ -191,27 +176,8 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
 
   // Auto-refresh images when data is loaded with performance optimization
   useEffect(() => {
-    if (trip && vehicle && !autoRefreshRef.current) {
-      console.log('🔄 Starting optimized auto-refresh for images...');
-      
-      // Start auto-refresh every 2 minutes with performance limits
-      autoRefreshRef.current = startAutoRefresh({
-        interval: 120000, // 2 minutes
-        selector: 'img',
-        maxRetries: 3, // Reduced retries
-        maxImages: 5 // Limit number of images to refresh
-      });
-      
-      // Start periodic cache cleanup
-      const cleanupInterval = setInterval(() => {
-        cleanupImageCache({
-          maxAge: 300000, // 5 minutes
-          maxSize: 20 // Limit cache size
-        });
-      }, 300000); // Every 5 minutes
-      
-      // Store cleanup interval for later cleanup
-      autoRefreshRef.current.cleanupInterval = cleanupInterval;
+    if (trip && vehicle) {
+      console.log('🔄 Data loaded, images should be ready for PDF generation');
     }
 
     // Cleanup on unmount
@@ -280,42 +246,36 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
 
   // Enhanced image URL handling with better CORS support and fallback
   const safeImgSrc = useMemo(() => {
-    return (url, fallback) => {
-      // Early return for falsy values - no fallback images
-      if (!url) return null;
+    return (url) => {
+      // Early return for falsy values
+      if (!url || url.trim() === '') return null;
       
-      // Use the enhanced normalization function
-      const normalizedUrl = normalizeImageUrl(url);
-      if (!normalizedUrl) return null;
+      const normalizedUrl = url.trim();
       
       try {
-        // ✅ حماية من الروابط النسبية
-        let urlObj;
+        // Handle relative URLs
         if (normalizedUrl.startsWith('http')) {
-          urlObj = new URL(normalizedUrl);
-        } else {
-          // لو الرابط نسبي، نحوله لكامل
-          urlObj = new URL(normalizedUrl, window.location.origin);
-        }
-        
-        if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-          if (process.env.NODE_ENV === 'development') {
-            // Use Vite proxy for development to avoid CORS
-            return `/__mbus__${urlObj.pathname}${urlObj.search}`;
-          } else {
-            // For production, use direct URL with cache busting
-            const params = new URLSearchParams(urlObj.search);
-            params.set('_t', Date.now().toString());
-            params.set('_r', Math.random().toString(36).substring(7));
-            urlObj.search = params.toString();
-            return urlObj.toString();
+          const urlObj = new URL(normalizedUrl);
+          
+          if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+            if (process.env.NODE_ENV === 'development') {
+              // Use Vite proxy for development to avoid CORS
+              return `/__mbus__${urlObj.pathname}${urlObj.search}`;
+            } else {
+              // For production, use direct URL with cache busting
+              const params = new URLSearchParams(urlObj.search);
+              params.set('_t', Date.now().toString());
+              urlObj.search = params.toString();
+              return urlObj.toString();
+            }
           }
         }
+        
+        return normalizedUrl;
       } catch (error) {
-        console.warn('Error processing URL for proxy:', normalizedUrl, error);
+        console.warn('Error processing URL:', normalizedUrl, error);
+        return normalizedUrl;
       }
-      
-      return normalizedUrl;
     };
   }, []);
 
@@ -328,7 +288,7 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
       }
       
       // Wait for fonts to be fully loaded
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
     } catch (error) {
       console.warn('Font loading failed, proceeding with PDF generation:', error);
@@ -339,198 +299,153 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
 
   // Generate a PDF Blob from the whole contract using html2pdf.js
   const generatePdfBlob = async () => {
-    return await monitorPerformance('PDF Generation', async () => {
-      const element = contractRef.current;
-      if (!element) {
-        console.error("Contract container not found");
-        throw new Error("Contract container not found");
-      }
-
-      console.log("Starting PDF generation...");
-      console.log("Element found:", element);
-      console.log("Element content:", element.innerHTML.substring(0, 200));
-
-    // Ensure Arabic fonts are loaded before PDF generation
-    await loadArabicFonts();
-
-    // Lock layout for PDF to match on-screen design
-    element.classList.add('pdf-mode');
-
-    // قياس الارتفاعين لتحديد إن كنا سنتجاوز صفحتين
-    const approximateIsTooTallForTwoPages = () => {
-      const pxPerMm = 3.78; // تقريب بصري شائع
-      const a4HeightMm = 297;
-      const usableHeightMm = a4HeightMm * 2 - 10; // طرح هامش تقريبي
-      const usableHeightPx = usableHeightMm * pxPerMm;
-      const totalHeight = element.scrollHeight;
-      return totalHeight > usableHeightPx;
-    };
-
-    // Enhanced helper: fetch image and convert to data URL with better error handling
-    const toDataUrl = async (src) => {
-      // Skip if already a data URL
-      if (isDataUrl(src)) {
-        return src;
-      }
-      
-      // Use the enhanced image loading utility with optimized config
-      return await loadImageAsDataUrl(src, optimizations.image);
-    };
-
-    // Enhanced image processing with better error handling and timeout
-    const imgs = Array.from(element.querySelectorAll('img'));
-    const originalSrcs = new Map();
-    
-    // Collect all image URLs for batch processing
-    const imageUrls = imgs
-      .map(img => img.getAttribute('src'))
-      .filter(src => src && !isDataUrl(src));
-    
-    console.log(`Processing ${imageUrls.length} images for PDF generation...`);
-    
-    // Check resource availability before processing
-    const resourceStats = getResourceStats();
-    console.log('📊 Resource stats:', resourceStats);
-    
-    if (!checkResourceAvailability('image-processing')) {
-      console.warn('⚠️ Insufficient resources for image processing, using fallback strategy');
-      // Use fallback strategy with reduced processing
-    }
-    
-    // Enhanced image loading with smart refresh
-    const imageDataUrls = new Map();
-    
-    // Process images with smart refresh and performance monitoring
-    for (const url of imageUrls) {
-      try {
-        // Clean URL to avoid duplicate parameters
-        const cleanUrl = url.split('?')[0];
-        
-        // Try to load image with CORS fallback
-        const dataUrl = await monitorImagePerformance(
-          `Image Processing: ${cleanUrl.substring(0, 30)}...`,
-          async () => {
-            // First try direct loading
-            try {
-              return await loadImageAsDataUrl(cleanUrl, {
-                timeout: 10000,
-                retries: 2,
-                cacheBust: true,
-                forceRefresh: true
-              });
-            } catch (error) {
-              console.warn(`Direct loading failed for ${cleanUrl}, trying fallback:`, error);
-              
-              // Fallback: try with different headers
-              try {
-                const response = await fetch(cleanUrl, {
-                  mode: 'no-cors',
-                  cache: 'no-cache',
-                  headers: {
-                    'Accept': 'image/*,*/*',
-                    'Cache-Control': 'no-cache'
-                  }
-                });
-                
-                if (response.ok) {
-                  const blob = await response.blob();
-                  return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = () => reject(new Error('Failed to read image blob'));
-                    reader.readAsDataURL(blob);
-                  });
-                }
-              } catch (fallbackError) {
-                console.warn(`Fallback loading also failed for ${cleanUrl}:`, fallbackError);
-                return null;
-              }
-            }
-          }
-        );
-        
-        if (dataUrl) {
-          imageDataUrls.set(url, dataUrl);
-          console.log(`✅ Smart refresh successful for: ${cleanUrl.substring(0, 50)}...`);
-        } else {
-          console.warn(`⚠️ Smart refresh failed for: ${cleanUrl}`);
-        }
-      } catch (error) {
-        console.error(`❌ Error in smart refresh for ${url}:`, error);
-      }
-    }
-    
-    // Apply the converted images to the DOM
-    imgs.forEach(img => {
-      const src = img.getAttribute('src');
-      if (!src || isDataUrl(src)) return;
-      
-      const dataUrl = imageDataUrls.get(src);
-      if (dataUrl) {
-        originalSrcs.set(img, src);
-        img.setAttribute('src', dataUrl);
-        console.log(`Successfully converted image: ${src.substring(0, 50)}...`);
-      } else {
-        console.warn(`Failed to convert image: ${src}`);
-        // Hide broken images
-        img.style.display = 'none';
-      }
-    });
-
-    // Ensure web fonts are loaded for crisp text before snapshot
-    if (document.fonts && document.fonts.ready) {
-      try { await document.fonts.ready; } catch {}
+    const element = contractRef.current;
+    if (!element) {
+      console.error("Contract container not found");
+      throw new Error("Contract container not found");
     }
 
-    const options = {
-      ...optimizations.pdf,
-      filename: `contract-${trip?.id || "trip"}.pdf`
-    };
+    console.log("Starting PDF generation...");
 
-    // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
-    if (approximateIsTooTallForTwoPages()) {
-      element.style.zoom = '0.95';
-    }
-    if (approximateIsTooTallForTwoPages()) {
-      element.style.zoom = '0.9';
-    }
     try {
+      // Ensure Arabic fonts are loaded before PDF generation
+      await loadArabicFonts();
+
+      // Lock layout for PDF to match on-screen design
+      element.classList.add('pdf-mode');
+
+      // قياس الارتفاعين لتحديد إن كنا سنتجاوز صفحتين
+      const approximateIsTooTallForTwoPages = () => {
+        const pxPerMm = 3.78; // تقريب بصري شائع
+        const a4HeightMm = 297;
+        const usableHeightMm = a4HeightMm * 2 - 10; // طرح هامش تقريبي
+        const usableHeightPx = usableHeightMm * pxPerMm;
+        const totalHeight = element.scrollHeight;
+        return totalHeight > usableHeightPx;
+      };
+
+      // Enhanced image processing with better error handling
+      const imgs = Array.from(element.querySelectorAll('img'));
+      const originalSrcs = new Map();
+      
+      // Collect all image URLs for batch processing
+      const imageUrls = imgs
+        .map(img => img.getAttribute('src'))
+        .filter(src => src && !src.startsWith('data:'));
+      
+      console.log(`Processing ${imageUrls.length} images for PDF generation...`);
+      
+      // Process images with better error handling
+      const imageDataUrls = new Map();
+      
+      for (const url of imageUrls) {
+        try {
+          // Clean URL to avoid duplicate parameters
+          const cleanUrl = url.split('?')[0];
+          
+          // Use the clean URL directly for better performance
+          const dataUrl = cleanUrl;
+          
+          if (dataUrl) {
+            imageDataUrls.set(url, dataUrl);
+            console.log(`✅ Image processed: ${cleanUrl.substring(0, 50)}...`);
+          }
+        } catch (error) {
+          console.error(`❌ Error processing image ${url}:`, error);
+        }
+      }
+      
+      // Apply the converted images to the DOM
+      imgs.forEach(img => {
+        const src = img.getAttribute('src');
+        if (!src || src.startsWith('data:')) return;
+        
+        const dataUrl = imageDataUrls.get(src);
+        if (dataUrl) {
+          originalSrcs.set(img, src);
+          img.setAttribute('src', dataUrl);
+          console.log(`Successfully converted image: ${src.substring(0, 50)}...`);
+        } else {
+          console.warn(`Failed to convert image: ${src}`);
+          // Hide broken images
+          img.style.display = 'none';
+        }
+      });
+
+      // Ensure web fonts are loaded for crisp text before snapshot
+      if (document.fonts && document.fonts.ready) {
+        try { 
+          await document.fonts.ready; 
+        } catch (error) {
+          console.warn('Font loading warning:', error);
+        }
+      }
+
+      const options = {
+        filename: `contract-${trip?.id || "trip"}.pdf`,
+        margin: [10, 10, 10, 10],
+        image: { type: 'jpeg', quality: 0.8 },
+        html2canvas: { 
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait' 
+        }
+      };
+
+      // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
+      if (approximateIsTooTallForTwoPages()) {
+        element.style.zoom = '0.95';
+      }
+      if (approximateIsTooTallForTwoPages()) {
+        element.style.zoom = '0.9';
+      }
+
       console.log("Creating PDF worker...");
-    const worker = html2pdf().set(options).from(element).toPdf();
+      const worker = html2pdf().set(options).from(element).toPdf();
       
       console.log("Getting PDF...");
-    const pdf = await worker.get("pdf");
+      const pdf = await worker.get("pdf");
       
       console.log("Creating blob...");
-    const blob = pdf.output("blob");
+      const blob = pdf.output("blob");
       
       console.log("PDF created successfully, blob size:", blob.size);
 
-    // Restore original src values
-    originalSrcs.forEach((src, img) => {
-      img.setAttribute('src', src);
-    });
+      // Restore original src values
+      originalSrcs.forEach((src, img) => {
+        img.setAttribute('src', src);
+      });
 
-    // Unlock layout
-    element.style.zoom = '';
-    element.classList.remove('pdf-mode');
+      // Unlock layout
+      element.style.zoom = '';
+      element.classList.remove('pdf-mode');
 
       return blob;
-      } catch (error) {
-        console.error("PDF generation failed:", error);
-        
-        // Restore original src values even on error
-        originalSrcs.forEach((src, img) => {
-          img.setAttribute('src', src);
-        });
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      
+      // Restore original src values even on error
+      const imgs = Array.from(element.querySelectorAll('img'));
+      imgs.forEach(img => {
+        const originalSrc = img.getAttribute('data-original-src');
+        if (originalSrc) {
+          img.setAttribute('src', originalSrc);
+        }
+      });
 
-        // Unlock layout
-        element.style.zoom = '';
-        element.classList.remove('pdf-mode');
-        
-        throw error;
-      }
-    });
+      // Unlock layout
+      element.style.zoom = '';
+      element.classList.remove('pdf-mode');
+      
+      throw error;
+    }
   };
 
   // Share the generated PDF via Web Share API when available; fallback otherwise
@@ -540,6 +455,7 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
         return;
       }
       isSharingRef.current = true;
+      
       // Show loading message
       const btn = shareBtnRef.current;
       const originalText = btn?.textContent;
@@ -552,12 +468,14 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
       const filename = `contract-${trip?.id || "trip"}.pdf`;
       const file = new File([blob], filename, { type: "application/pdf" });
 
+      // Check if Web Share API is available
       const canShareFiles = typeof navigator !== "undefined" && navigator.canShare && navigator.canShare({ files: [file] });
       if (canShareFiles && navigator.share) {
         await navigator.share({ files: [file], title: filename, text: `عقد الرحلة رقم ${trip?.id || ""}` });
         return;
       }
 
+      // Fallback: Download and open WhatsApp
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -587,19 +505,27 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
   const handleRefreshImages = async () => {
     try {
       console.log('🔄 Manual image refresh started...');
-      const success = await forceRefreshAllImages({
-        selector: 'img',
-        timeout: 10000,
-        retries: 3
+      
+      // Force reload all images by adding cache busting parameter
+      const imgs = document.querySelectorAll('img');
+      let refreshedCount = 0;
+      
+      imgs.forEach(img => {
+        const src = img.src;
+        if (src && !src.startsWith('data:')) {
+          try {
+            const url = new URL(src);
+            url.searchParams.set('_refresh', Date.now().toString());
+            img.src = url.toString();
+            refreshedCount++;
+          } catch (error) {
+            console.warn('Failed to refresh image:', src, error);
+          }
+        }
       });
       
-      if (success) {
-        console.log('✅ Images refreshed successfully');
-        alert('تم تحديث الصور بنجاح!');
-      } else {
-        console.warn('⚠️ Some images failed to refresh');
-        alert('تم تحديث بعض الصور، قد تحتاج إلى إعادة تحميل الصفحة');
-      }
+      console.log(`✅ ${refreshedCount} images refreshed successfully`);
+      alert(`تم تحديث ${refreshedCount} صورة بنجاح!`);
     } catch (error) {
       console.error('❌ Image refresh failed:', error);
       alert('فشل في تحديث الصور، يرجى المحاولة مرة أخرى');
