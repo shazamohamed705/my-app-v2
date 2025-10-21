@@ -303,7 +303,11 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
             // Use Vite proxy for development to avoid CORS
             return `/__mbus__${urlObj.pathname}${urlObj.search}`;
           } else {
-            // Use direct URL for production
+            // For production, use direct URL with cache busting
+            const params = new URLSearchParams(urlObj.search);
+            params.set('_t', Date.now().toString());
+            params.set('_r', Math.random().toString(36).substring(7));
+            urlObj.search = params.toString();
             return urlObj.toString();
           }
         }
@@ -402,13 +406,47 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
         // Clean URL to avoid duplicate parameters
         const cleanUrl = url.split('?')[0];
         
+        // Try to load image with CORS fallback
         const dataUrl = await monitorImagePerformance(
           `Image Processing: ${cleanUrl.substring(0, 30)}...`,
-          () => smartRefreshImage(cleanUrl, {
-            timeout: 15000,
-            retries: 3,
-            useCache: false // Force fresh load for PDF
-          })
+          async () => {
+            // First try direct loading
+            try {
+              return await loadImageAsDataUrl(cleanUrl, {
+                timeout: 10000,
+                retries: 2,
+                cacheBust: true,
+                forceRefresh: true
+              });
+            } catch (error) {
+              console.warn(`Direct loading failed for ${cleanUrl}, trying fallback:`, error);
+              
+              // Fallback: try with different headers
+              try {
+                const response = await fetch(cleanUrl, {
+                  mode: 'no-cors',
+                  cache: 'no-cache',
+                  headers: {
+                    'Accept': 'image/*,*/*',
+                    'Cache-Control': 'no-cache'
+                  }
+                });
+                
+                if (response.ok) {
+                  const blob = await response.blob();
+                  return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => reject(new Error('Failed to read image blob'));
+                    reader.readAsDataURL(blob);
+                  });
+                }
+              } catch (fallbackError) {
+                console.warn(`Fallback loading also failed for ${cleanUrl}:`, fallbackError);
+                return null;
+              }
+            }
+          }
         );
         
         if (dataUrl) {

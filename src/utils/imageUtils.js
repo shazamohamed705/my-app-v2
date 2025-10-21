@@ -82,21 +82,24 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(targetUrl, {
-        mode: 'cors',
+        mode: 'no-cors', // Use no-cors to avoid CORS issues
         credentials: 'omit',
         cache: 'no-cache',
         signal: controller.signal,
         headers: {
           'Accept': 'image/*,*/*',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': window.location.origin,
-          'Origin': window.location.origin
+          'Pragma': 'no-cache'
         }
       });
 
       clearTimeout(timeoutId);
+
+      // For no-cors mode, we can't check response.ok, so we proceed
+      if (response.type === 'opaque') {
+        console.warn('Opaque response received (no-cors mode), image may not be accessible');
+        return null;
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -121,9 +124,15 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
     } catch (error) {
       console.warn(`Image load attempt ${attempt} failed:`, error.message);
       
+      // Try alternative method using Image element for CORS issues
       if (attempt === retries) {
-        console.error(`Failed to load image after ${retries} attempts:`, targetUrl);
-        return null;
+        try {
+          console.log(`Trying alternative loading method for: ${targetUrl.substring(0, 50)}...`);
+          return await loadImageWithCanvas(targetUrl);
+        } catch (altError) {
+          console.error(`Alternative loading also failed:`, altError);
+          return null;
+        }
       }
       
       // Wait before retry (exponential backoff)
@@ -132,6 +141,49 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
   }
 
   return null;
+};
+
+/**
+ * Alternative image loading using Image element and Canvas
+ * @param {string} url - Image URL
+ * @returns {Promise<string|null>} Data URL or null
+ */
+const loadImageWithCanvas = async (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        ctx.drawImage(img, 0, 0);
+        
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log(`✅ Canvas method successful for: ${url.substring(0, 50)}...`);
+        resolve(dataUrl);
+      } catch (error) {
+        console.error(`Canvas method failed:`, error);
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      console.error(`Image element failed to load: ${url}`);
+      reject(new Error('Image element failed to load'));
+    };
+    
+    // Set timeout
+    setTimeout(() => {
+      reject(new Error('Image loading timeout'));
+    }, 10000);
+    
+    img.src = url;
+  });
 };
 
 /**
