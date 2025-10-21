@@ -31,29 +31,27 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
         throw new Error('Invalid or empty URL');
       }
       
-      const urlObj = new URL(url.trim());
+      // ✅ هنا بنضيف حماية قبل ما نستخدم new URL
+      let urlObj;
+      if (url.startsWith('http')) {
+        urlObj = new URL(url.trim());
+      } else {
+        // لو الرابط نسبي، نحوله لكامل
+        urlObj = new URL(url.trim(), window.location.origin);
+      }
+      
       const params = new URLSearchParams(urlObj.search);
       
       // Clean existing cache busting parameters to avoid duplication
-      params.delete('_t');
-      params.delete('_r');
-      params.delete('_f');
-      params.delete('_v');
-      params.delete('t');
-      params.delete('r');
+      ['_t', '_r', '_f', '_v', 't', 'r'].forEach(p => params.delete(p));
       
-      // Single cache busting strategy to avoid URL corruption
+      // Add cache busting parameters
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(7);
-      
-      // Add clean cache busting parameters
       params.set('_t', timestamp.toString());
       params.set('_r', random);
       
-      // Force refresh parameter
-      if (forceRefresh) {
-        params.set('_f', '1');
-      }
+      if (forceRefresh) params.set('_f', '1');
       
       urlObj.search = params.toString();
       
@@ -68,8 +66,7 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
         targetUrl = urlObj.toString();
       }
     } catch (error) {
-      console.warn('Failed to add cache busting:', error);
-      // Fallback to original URL with basic cache busting
+      console.warn('Failed to add cache busting safely:', error);
       const separator = url.includes('?') ? '&' : '?';
       targetUrl = `${url}${separator}t=${Date.now()}&r=${Math.random().toString(36).substring(7)}`;
     }
@@ -213,7 +210,14 @@ export const normalizeImageUrl = (url) => {
   }
 
   try {
-    const urlObj = new URL(trimmedUrl);
+    // ✅ حماية من الروابط النسبية
+    let urlObj;
+    if (trimmedUrl.startsWith('http')) {
+      urlObj = new URL(trimmedUrl);
+    } else {
+      // لو الرابط نسبي، نحوله لكامل
+      urlObj = new URL(trimmedUrl, window.location.origin);
+    }
     
     // Check if it's a valid image URL
     const validProtocols = ['http:', 'https:'];
