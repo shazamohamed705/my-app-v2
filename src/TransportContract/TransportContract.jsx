@@ -12,10 +12,12 @@ import {
   isDataUrl,
   forceRefreshAllImages,
   smartRefreshImage,
-  startAutoRefresh
+  startAutoRefresh,
+  cleanupImageCache,
+  monitorImagePerformance
 } from "../utils/imageUtils";
 import { monitorPerformance, processBatch } from "../utils/performanceUtils";
-import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/vercelOptimizations";
+import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats, checkResourceAvailability } from "../utils/vercelOptimizations";
  const TransportContract = () => {
   const { id } = useParams(); 
 
@@ -187,23 +189,38 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
     fetchData();
   }, [id]);
 
-  // Auto-refresh images when data is loaded
+  // Auto-refresh images when data is loaded with performance optimization
   useEffect(() => {
     if (trip && vehicle && !autoRefreshRef.current) {
-      console.log('🔄 Starting auto-refresh for images...');
+      console.log('🔄 Starting optimized auto-refresh for images...');
       
-      // Start auto-refresh every 2 minutes
+      // Start auto-refresh every 2 minutes with performance limits
       autoRefreshRef.current = startAutoRefresh({
         interval: 120000, // 2 minutes
         selector: 'img',
-        maxRetries: 5
+        maxRetries: 3, // Reduced retries
+        maxImages: 5 // Limit number of images to refresh
       });
+      
+      // Start periodic cache cleanup
+      const cleanupInterval = setInterval(() => {
+        cleanupImageCache({
+          maxAge: 300000, // 5 minutes
+          maxSize: 20 // Limit cache size
+        });
+      }, 300000); // Every 5 minutes
+      
+      // Store cleanup interval for later cleanup
+      autoRefreshRef.current.cleanupInterval = cleanupInterval;
     }
 
     // Cleanup on unmount
     return () => {
       if (autoRefreshRef.current) {
         autoRefreshRef.current();
+        if (autoRefreshRef.current.cleanupInterval) {
+          clearInterval(autoRefreshRef.current.cleanupInterval);
+        }
         autoRefreshRef.current = null;
       }
     };
@@ -359,23 +376,38 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
     
     console.log(`Processing ${imageUrls.length} images for PDF generation...`);
     
+    // Check resource availability before processing
+    const resourceStats = getResourceStats();
+    console.log('📊 Resource stats:', resourceStats);
+    
+    if (!checkResourceAvailability('image-processing')) {
+      console.warn('⚠️ Insufficient resources for image processing, using fallback strategy');
+      // Use fallback strategy with reduced processing
+    }
+    
     // Enhanced image loading with smart refresh
     const imageDataUrls = new Map();
     
-    // Process images with smart refresh for better cache busting
+    // Process images with smart refresh and performance monitoring
     for (const url of imageUrls) {
       try {
-        const dataUrl = await smartRefreshImage(url, {
-          timeout: 15000,
-          retries: 3,
-          useCache: false // Force fresh load for PDF
-        });
+        // Clean URL to avoid duplicate parameters
+        const cleanUrl = url.split('?')[0];
+        
+        const dataUrl = await monitorImagePerformance(
+          `Image Processing: ${cleanUrl.substring(0, 30)}...`,
+          () => smartRefreshImage(cleanUrl, {
+            timeout: 15000,
+            retries: 3,
+            useCache: false // Force fresh load for PDF
+          })
+        );
         
         if (dataUrl) {
           imageDataUrls.set(url, dataUrl);
-          console.log(`✅ Smart refresh successful for: ${url.substring(0, 50)}...`);
+          console.log(`✅ Smart refresh successful for: ${cleanUrl.substring(0, 50)}...`);
         } else {
-          console.warn(`⚠️ Smart refresh failed for: ${url}`);
+          console.warn(`⚠️ Smart refresh failed for: ${cleanUrl}`);
         }
       } catch (error) {
         console.error(`❌ Error in smart refresh for ${url}:`, error);

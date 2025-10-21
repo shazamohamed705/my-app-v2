@@ -35,22 +35,26 @@ export const getImageConfig = () => {
   if (isVercel()) {
     return {
       ...baseConfig,
-      timeout: 25000, // Longer timeout for Vercel
-      retries: 5, // More retries for Vercel
-      batchSize: 2, // Smaller batches for Vercel
-      delay: 500, // Longer delay between batches
+      timeout: 30000, // Longer timeout for Vercel
+      retries: 3, // Reduced retries for better performance
+      batchSize: 1, // Single image processing for Vercel
+      delay: 1000, // Longer delay between images
       forceRefresh: true, // Force refresh on Vercel
       autoRefresh: true, // Enable auto-refresh
-      refreshInterval: 120000 // 2 minutes
+      refreshInterval: 180000, // 3 minutes
+      maxConcurrent: 2, // Limit concurrent requests
+      memoryLimit: 50 // MB memory limit
     };
   }
 
   return {
     ...baseConfig,
-    batchSize: 3,
-    delay: 200,
+    batchSize: 2,
+    delay: 300,
     autoRefresh: true,
-    refreshInterval: 180000 // 3 minutes for development
+    refreshInterval: 240000, // 4 minutes for development
+    maxConcurrent: 3,
+    memoryLimit: 100
   };
 };
 
@@ -215,6 +219,56 @@ export const initializeOptimizations = () => {
     error: getErrorConfig()
   };
 
+  // Add memory management for Vercel
+  if (isVercel()) {
+    config.memory = {
+      maxCacheSize: 20, // Maximum cached images
+      cleanupInterval: 300000, // 5 minutes
+      gcThreshold: 0.8 // Garbage collection threshold
+    };
+  }
+
   console.log('Initialized optimizations for:', isVercel() ? 'Vercel' : 'Development');
   return config;
+};
+
+/**
+ * Get resource usage statistics
+ * @returns {Object} Resource usage stats
+ */
+export const getResourceStats = () => {
+  if (typeof performance === 'undefined' || !performance.memory) {
+    return { available: false };
+  }
+
+  const memory = performance.memory;
+  return {
+    available: true,
+    used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+    total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+    limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
+    usage: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100)
+  };
+};
+
+/**
+ * Check if system resources are sufficient for operation
+ * @param {string} operation - Operation name
+ * @returns {boolean} True if resources are sufficient
+ */
+export const checkResourceAvailability = (operation = 'image-processing') => {
+  const stats = getResourceStats();
+  
+  if (!stats.available) {
+    return true; // Assume available if we can't check
+  }
+
+  const thresholds = {
+    'image-processing': 80,
+    'pdf-generation': 70,
+    'batch-processing': 60
+  };
+
+  const threshold = thresholds[operation] || 80;
+  return stats.usage < threshold;
 };

@@ -22,28 +22,38 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
     return null;
   }
 
-  // Enhanced cache busting with multiple strategies
+  // Enhanced cache busting with better error handling
   let targetUrl = url;
   if (cacheBust) {
     try {
-      const urlObj = new URL(url);
+      // Validate URL first
+      if (!url || typeof url !== 'string' || url.trim() === '') {
+        throw new Error('Invalid or empty URL');
+      }
+      
+      const urlObj = new URL(url.trim());
       const params = new URLSearchParams(urlObj.search);
       
-      // Multiple cache busting strategies
+      // Clean existing cache busting parameters to avoid duplication
+      params.delete('_t');
+      params.delete('_r');
+      params.delete('_f');
+      params.delete('_v');
+      params.delete('t');
+      params.delete('r');
+      
+      // Single cache busting strategy to avoid URL corruption
       const timestamp = Date.now();
       const random = Math.random().toString(36).substring(7);
       
-      // Strategy 1: Timestamp + random
+      // Add clean cache busting parameters
       params.set('_t', timestamp.toString());
       params.set('_r', random);
       
-      // Strategy 2: Force refresh parameter
+      // Force refresh parameter
       if (forceRefresh) {
         params.set('_f', '1');
       }
-      
-      // Strategy 3: Version parameter for better caching
-      params.set('_v', '2');
       
       urlObj.search = params.toString();
       
@@ -60,7 +70,8 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
     } catch (error) {
       console.warn('Failed to add cache busting:', error);
       // Fallback to original URL with basic cache busting
-      targetUrl = `${url}?t=${Date.now()}&r=${Math.random().toString(36).substring(7)}`;
+      const separator = url.includes('?') ? '&' : '?';
+      targetUrl = `${url}${separator}t=${Date.now()}&r=${Math.random().toString(36).substring(7)}`;
     }
   }
 
@@ -77,9 +88,12 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
         cache: 'no-cache',
         signal: controller.signal,
         headers: {
-          'Accept': 'image/*',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Accept': 'image/*,*/*',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': window.location.origin,
+          'Origin': window.location.origin
         }
       });
 
@@ -122,7 +136,7 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
 };
 
 /**
- * Preload multiple images with better error handling
+ * Preload multiple images with better error handling and performance optimization
  * @param {string[]} urls - Array of image URLs
  * @param {Object} options - Loading options
  * @returns {Promise<Map<string, string|null>>} Map of URL to data URL
@@ -130,28 +144,56 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
 export const preloadImages = async (urls, options = {}) => {
   const results = new Map();
   
-  // Process images in batches to avoid overwhelming the server
-  const batchSize = options.batchSize || 3;
+  // Filter out invalid URLs and duplicates
+  const validUrls = [...new Set(urls.filter(url => url && typeof url === 'string' && url.trim()))];
+  
+  if (validUrls.length === 0) {
+    console.warn('No valid URLs provided for preloading');
+    return results;
+  }
+  
+  // Process images in smaller batches to avoid overwhelming the server
+  const batchSize = options.batchSize || 2; // Reduced batch size for Vercel
   const batches = [];
   
-  for (let i = 0; i < urls.length; i += batchSize) {
-    batches.push(urls.slice(i, i + batchSize));
+  for (let i = 0; i < validUrls.length; i += batchSize) {
+    batches.push(validUrls.slice(i, i + batchSize));
   }
+
+  console.log(`🔄 Preloading ${validUrls.length} images in ${batches.length} batches...`);
 
   for (const batch of batches) {
     const batchPromises = batch.map(async (url) => {
-      const dataUrl = await loadImageAsDataUrl(url, options);
-      results.set(url, dataUrl);
+      try {
+        const dataUrl = await loadImageAsDataUrl(url, {
+          ...options,
+          timeout: 20000, // Longer timeout for batch processing
+          retries: 2 // Fewer retries for batch processing
+        });
+        results.set(url, dataUrl);
+        
+        if (dataUrl) {
+          console.log(`✅ Preloaded: ${url.substring(0, 50)}...`);
+        } else {
+          console.warn(`❌ Failed to preload: ${url.substring(0, 50)}...`);
+        }
+      } catch (error) {
+        console.error(`❌ Error preloading ${url}:`, error);
+        results.set(url, null);
+      }
     });
 
     await Promise.allSettled(batchPromises);
     
-    // Small delay between batches
+    // Longer delay between batches to avoid overwhelming the server
     if (batches.indexOf(batch) < batches.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 
+  const successCount = Array.from(results.values()).filter(Boolean).length;
+  console.log(`🔄 Preloading completed: ${successCount}/${validUrls.length} images loaded successfully`);
+  
   return results;
 };
 
@@ -310,14 +352,18 @@ export const smartRefreshImage = async (url, options = {}) => {
   } = options;
 
   if (!url || typeof url !== 'string') {
+    console.warn('⚠️ Smart refresh failed for: Invalid URL');
     return null;
   }
 
+  // Clean URL to avoid duplicate parameters
+  const cleanUrl = url.split('?')[0];
+  
   // Check if we have a cached version that's still fresh
   if (useCache && window.imageCache) {
-    const cached = window.imageCache.get(url);
+    const cached = window.imageCache.get(cleanUrl);
     if (cached && Date.now() - cached.timestamp < 300000) { // 5 minutes
-      console.log('Using cached image:', url.substring(0, 50));
+      console.log('Using cached image:', cleanUrl.substring(0, 50));
       return cached.dataUrl;
     }
   }
@@ -328,7 +374,7 @@ export const smartRefreshImage = async (url, options = {}) => {
   }
 
   // Try to load with enhanced cache busting
-  const dataUrl = await loadImageAsDataUrl(url, {
+  const dataUrl = await loadImageAsDataUrl(cleanUrl, {
     timeout,
     retries,
     cacheBust: true,
@@ -337,33 +383,46 @@ export const smartRefreshImage = async (url, options = {}) => {
 
   if (dataUrl) {
     // Cache the result
-    window.imageCache.set(url, {
+    window.imageCache.set(cleanUrl, {
       dataUrl,
       timestamp: Date.now()
     });
+  } else {
+    console.warn(`⚠️ Smart refresh failed for: ${cleanUrl}`);
   }
 
   return dataUrl;
 };
 
 /**
- * Auto-refresh images periodically
+ * Auto-refresh images periodically with performance optimization
  * @param {Object} options - Auto-refresh options
  * @returns {Function} Stop function
  */
 export const startAutoRefresh = (options = {}) => {
   const {
-    interval = 60000, // 1 minute
+    interval = 120000, // 2 minutes (increased for better performance)
     selector = 'img',
-    maxRetries = 3
+    maxRetries = 3,
+    maxImages = 10 // Limit number of images to refresh
   } = options;
 
-  console.log('🔄 Starting auto-refresh for images...');
+  console.log('🔄 Starting optimized auto-refresh for images...');
   
   let retryCount = 0;
   const intervalId = setInterval(async () => {
     try {
-      const success = await forceRefreshAllImages({ selector });
+      // Only refresh if page is visible to save resources
+      if (document.hidden) {
+        console.log('⏸️ Page hidden, skipping auto-refresh');
+        return;
+      }
+      
+      const success = await forceRefreshAllImages({ 
+        selector,
+        maxImages // Limit images to refresh
+      });
+      
       if (success) {
         retryCount = 0; // Reset on success
       } else {
@@ -384,4 +443,63 @@ export const startAutoRefresh = (options = {}) => {
     console.log('🛑 Stopping auto-refresh...');
     clearInterval(intervalId);
   };
+};
+
+/**
+ * Memory-efficient image cleanup
+ * @param {Object} options - Cleanup options
+ */
+export const cleanupImageCache = (options = {}) => {
+  const {
+    maxAge = 300000, // 5 minutes
+    maxSize = 50 // Maximum number of cached images
+  } = options;
+
+  if (!window.imageCache) return;
+
+  const now = Date.now();
+  const entries = Array.from(window.imageCache.entries());
+  
+  // Remove old entries
+  const validEntries = entries.filter(([url, data]) => {
+    return now - data.timestamp < maxAge;
+  });
+
+  // Keep only the most recent entries if cache is too large
+  const sortedEntries = validEntries
+    .sort((a, b) => b[1].timestamp - a[1].timestamp)
+    .slice(0, maxSize);
+
+  // Clear and repopulate cache
+  window.imageCache.clear();
+  sortedEntries.forEach(([url, data]) => {
+    window.imageCache.set(url, data);
+  });
+
+  console.log(`🧹 Cache cleanup: ${entries.length - sortedEntries.length} old entries removed`);
+};
+
+/**
+ * Performance monitoring for image operations
+ * @param {string} operation - Operation name
+ * @param {Function} fn - Function to monitor
+ * @returns {Promise<any>} Function result
+ */
+export const monitorImagePerformance = async (operation, fn) => {
+  const startTime = performance.now();
+  const startMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+  
+  try {
+    const result = await fn();
+    const endTime = performance.now();
+    const endMemory = performance.memory ? performance.memory.usedJSHeapSize : 0;
+    
+    console.log(`📊 ${operation} completed in ${(endTime - startTime).toFixed(2)}ms, memory: ${((endMemory - startMemory) / 1024 / 1024).toFixed(2)}MB`);
+    
+    return result;
+  } catch (error) {
+    const endTime = performance.now();
+    console.error(`❌ ${operation} failed after ${(endTime - startTime).toFixed(2)}ms:`, error);
+    throw error;
+  }
 };
