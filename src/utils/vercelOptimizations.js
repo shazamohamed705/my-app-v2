@@ -8,6 +8,14 @@
  * @returns {boolean} True if running on Vercel
  */
 export const isVercel = () => {
+  // Safe check for process.env in browser environment
+  if (typeof process === 'undefined' || !process.env) {
+    // Check for Vercel-specific environment indicators
+    return window.location.hostname.includes('vercel.app') || 
+           window.location.hostname.includes('vercel.com') ||
+           window.location.hostname.includes('now.sh');
+  }
+  
   return process.env.VERCEL === '1' || 
          process.env.NODE_ENV === 'production';
 };

@@ -1,21 +1,5 @@
-/* Arabic fonts with local fallback */
-@font-face {
-  font-family: 'Cairo';
-  src: url('../assets/fonts/Cairo-Regular.woff2') format('woff2'),
-       url('https://fonts.googleapis.com/css2?family=Cairo:wght@400&display=swap') format('woff');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('../assets/fonts/Cairo-Bold.woff2') format('woff2'),
-       url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap') format('woff');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+/* Import Google Fonts for Arabic text */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
 :root {
   --th-color: #0e0f0f; 
   --accent: #c91414;
