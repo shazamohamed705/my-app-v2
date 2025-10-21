@@ -167,7 +167,17 @@ export const optimizedImageLoader = async (imageUrls, options = {}) => {
       }
       
       try {
-        const response = await fetch(url, {
+        // Use proxy for my-bus.storage-te.com to avoid CORS
+        let fetchUrl = url;
+        if (url.includes('my-bus.storage-te.com')) {
+          if (process.env.NODE_ENV === 'production') {
+            fetchUrl = `/api/proxy${new URL(url).pathname}${new URL(url).search}`;
+          } else {
+            fetchUrl = `/__mbus__${new URL(url).pathname}${new URL(url).search}`;
+          }
+        }
+        
+        const response = await fetch(fetchUrl, {
           mode: 'cors',
           cache: 'no-cache',
           headers: { 'Accept': 'image/*' }

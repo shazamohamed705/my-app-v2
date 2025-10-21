@@ -21,7 +21,7 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
     return null;
   }
 
-  // Add cache busting for production
+  // Add cache busting and use proxy for production
   let targetUrl = url;
   if (cacheBust && process.env.NODE_ENV === 'production') {
     try {
@@ -29,9 +29,25 @@ export const loadImageAsDataUrl = async (url, options = {}) => {
       const params = new URLSearchParams(urlObj.search);
       params.set('_t', Date.now().toString());
       urlObj.search = params.toString();
-      targetUrl = urlObj.toString();
+      
+      // Use Vercel proxy for my-bus.storage-te.com to avoid CORS
+      if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+        targetUrl = `/api/proxy${urlObj.pathname}${urlObj.search}`;
+      } else {
+        targetUrl = urlObj.toString();
+      }
     } catch (error) {
       console.warn('Failed to add cache busting:', error);
+    }
+  } else if (process.env.NODE_ENV === 'development') {
+    // Use Vite proxy for development
+    try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+        targetUrl = `/__mbus__${urlObj.pathname}${urlObj.search}`;
+      }
+    } catch (error) {
+      console.warn('Failed to process URL for proxy:', error);
     }
   }
 

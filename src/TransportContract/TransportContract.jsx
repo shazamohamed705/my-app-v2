@@ -240,16 +240,19 @@ import { initializeOptimizations, getImageConfig, getPdfConfig } from "../utils/
       const normalizedUrl = normalizeImageUrl(url);
       if (!normalizedUrl) return null;
       
-      // For development, use proxy if available
-      if (process.env.NODE_ENV === 'development') {
-        try {
-          const urlObj = new URL(normalizedUrl);
-          if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+      try {
+        const urlObj = new URL(normalizedUrl);
+        if (urlObj.hostname.includes('my-bus.storage-te.com')) {
+          // Use Vercel proxy for production to avoid CORS issues
+          if (process.env.NODE_ENV === 'production') {
+            return `/api/proxy${urlObj.pathname}${urlObj.search}`;
+          } else {
+            // Use Vite proxy for development
             return `/__mbus__${urlObj.pathname}${urlObj.search}`;
           }
-        } catch (error) {
-          console.warn('Error processing URL for proxy:', normalizedUrl, error);
         }
+      } catch (error) {
+        console.warn('Error processing URL for proxy:', normalizedUrl, error);
       }
       
       return normalizedUrl;
