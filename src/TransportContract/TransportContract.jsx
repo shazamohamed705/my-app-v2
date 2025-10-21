@@ -24,15 +24,15 @@ import html2pdf from "html2pdf.js";
   const company = useMemo(() => {
     if (!vehicle) {
       return {
-        owner_name: "",
-        owner_name_en: "",
-        company_phone: "",
-        company_address: "",
-        company_address_en: "",
-        company_tax_number: "",
-        company_commercial_number: "",
-        logo_src: null,
-      };
+      owner_name: "",
+      owner_name_en: "",
+      company_phone: "",
+      company_address: "",
+      company_address_en: "",
+      company_tax_number: "",
+      company_commercial_number: "",
+      logo_src: null,
+    };
     }
     
     // Use nullish coalescing for better performance
@@ -130,6 +130,9 @@ import html2pdf from "html2pdf.js";
   useEffect(() => {
     if (!id) return;
 
+    // Preload Arabic fonts on component mount
+    loadArabicFonts();
+
     // Reset all states efficiently
     const resetStates = () => {
       setTrip(null); 
@@ -225,18 +228,18 @@ import html2pdf from "html2pdf.js";
     const proxyPrefix = '/__mbus__';
     
     return (url) => {
-      if (!url) return null;
+    if (!url) return null;
       
-      try {
-        const u = new URL(url, window.location.origin);
+    try {
+      const u = new URL(url, window.location.origin);
         if (u.hostname.includes(proxyHost)) {
           return `${proxyPrefix}${u.pathname}${u.search}`;
-        }
-        return url;
-      } catch {
-        return url;
       }
-    };
+      return url;
+    } catch {
+      return url;
+    }
+  };
   }, []);
 
   // Optimized safe image source - returns null if no image from API
@@ -253,13 +256,38 @@ import html2pdf from "html2pdf.js";
     };
   }, [toProxyUrl]);
 
+  // Function to ensure Arabic fonts are loaded before PDF generation
+  const loadArabicFonts = async () => {
+    try {
+      // Check if document.fonts is available
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      
+      // Wait for fonts to be fully loaded
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.warn('Font loading failed, proceeding with PDF generation:', error);
+    }
+  };
 
   if (!trip || isGenerating) return <p>⏳ جاري إنشاء PDF...</p>;
 
   // Generate a PDF Blob from the whole contract using html2pdf.js
   const generatePdfBlob = async () => {
     const element = contractRef.current;
-    if (!element) throw new Error("Contract container not found");
+    if (!element) {
+      console.error("Contract container not found");
+      throw new Error("Contract container not found");
+    }
+
+    console.log("Starting PDF generation...");
+    console.log("Element found:", element);
+    console.log("Element content:", element.innerHTML.substring(0, 200));
+
+    // Ensure Arabic fonts are loaded before PDF generation
+    await loadArabicFonts();
 
     // Lock layout for PDF to match on-screen design
     element.classList.add('pdf-mode');
@@ -322,14 +350,12 @@ import html2pdf from "html2pdf.js";
       filename: `contract-${trip?.id || "trip"}.pdf`,
       image: { type: "jpeg", quality: 0.92 },
       html2canvas: { 
-        scale: 2.2,
+        scale: 2,
         useCORS: true,
         allowTaint: true,
         logging: false,
         backgroundColor: "#ffffff",
-        letterRendering: false,
-        foreignObjectRendering: false,
-        imageTimeout: 15000,
+        imageTimeout: 10000,
         removeContainer: true
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
@@ -343,9 +369,17 @@ import html2pdf from "html2pdf.js";
     if (approximateIsTooTallForTwoPages()) {
       element.style.zoom = '0.9';
     }
+    try {
+      console.log("Creating PDF worker...");
     const worker = html2pdf().set(options).from(element).toPdf();
+      
+      console.log("Getting PDF...");
     const pdf = await worker.get("pdf");
+      
+      console.log("Creating blob...");
     const blob = pdf.output("blob");
+      
+      console.log("PDF created successfully, blob size:", blob.size);
 
     // Restore original src values
     originalSrcs.forEach((src, img) => {
@@ -357,6 +391,20 @@ import html2pdf from "html2pdf.js";
     element.classList.remove('pdf-mode');
 
     return blob;
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      
+      // Restore original src values even on error
+      originalSrcs.forEach((src, img) => {
+        img.setAttribute('src', src);
+      });
+
+      // Unlock layout
+      element.style.zoom = '';
+      element.classList.remove('pdf-mode');
+      
+      throw error;
+    }
   };
 
   // Share the generated PDF via Web Share API when available; fallback otherwise
