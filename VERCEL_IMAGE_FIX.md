@@ -53,6 +53,13 @@ if (url.startsWith('http')) {
 }
 ```
 
+### إصلاح إضافي: جميع استخدامات new URL()
+تم إصلاح جميع الأماكن التي تستخدم `new URL()` في:
+- `loadImageAsDataUrl()` ✅
+- `normalizeImageUrl()` ✅  
+- `forceRefreshAllImages()` ✅
+- `safeImgSrc()` في TransportContract.jsx ✅
+
 ## النتيجة المتوقعة
 - الصور تعمل بشكل صحيح على Vercel
 - نفس المسارات تعمل في البيئة المحلية والإنتاجية

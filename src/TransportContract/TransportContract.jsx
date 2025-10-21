@@ -290,7 +290,15 @@ import { initializeOptimizations, getImageConfig, getPdfConfig, getResourceStats
       if (!normalizedUrl) return null;
       
       try {
-        const urlObj = new URL(normalizedUrl);
+        // ✅ حماية من الروابط النسبية
+        let urlObj;
+        if (normalizedUrl.startsWith('http')) {
+          urlObj = new URL(normalizedUrl);
+        } else {
+          // لو الرابط نسبي، نحوله لكامل
+          urlObj = new URL(normalizedUrl, window.location.origin);
+        }
+        
         if (urlObj.hostname.includes('my-bus.storage-te.com')) {
           if (isVercelProduction()) {
             // Use Vercel proxy for production to avoid CORS issues

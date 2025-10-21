@@ -314,8 +314,15 @@ export const forceRefreshAllImages = async (options = {}) => {
       const originalSrc = img.src;
       const refreshPromise = new Promise(async (resolve) => {
         try {
-          // Add aggressive cache busting
-          const url = new URL(originalSrc);
+          // Add aggressive cache busting with URL protection
+          let url;
+          if (originalSrc.startsWith('http')) {
+            url = new URL(originalSrc);
+          } else {
+            // لو الرابط نسبي، نحوله لكامل
+            url = new URL(originalSrc, window.location.origin);
+          }
+          
           const params = new URLSearchParams(url.search);
           params.set('_refresh', Date.now().toString());
           params.set('_force', '1');
