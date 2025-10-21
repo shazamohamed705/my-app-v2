@@ -479,7 +479,7 @@ import html2pdf from "html2pdf.js";
       </div>
       <div ref={contractRef}>
       {/* الصفحة الأولى */}
-      <div className="contract-outer">
+      <div className="contract-outer arabic-text">
         <div className="contract-inner">
           <div className="contract-body">
 
@@ -660,7 +660,7 @@ import html2pdf from "html2pdf.js";
       </div>
 
       {/* الصفحة الثانية */}
-      <div className="contract-outer">
+      <div className="contract-outer arabic-text">
         <div className="contract-inner">
           <div className="contract-body">
             {/* الهيدر مكرر */}

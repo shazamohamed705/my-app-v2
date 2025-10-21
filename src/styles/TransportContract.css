@@ -1,4 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+/* Arabic fonts with local fallback */
+@font-face {
+  font-family: 'Cairo';
+  src: url('../assets/fonts/Cairo-Regular.woff2') format('woff2'),
+       url('https://fonts.googleapis.com/css2?family=Cairo:wght@400&display=swap') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cairo';
+  src: url('../assets/fonts/Cairo-Bold.woff2') format('woff2'),
+       url('https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   --th-color: #0e0f0f; 
   --accent: #c91414;
@@ -9,6 +26,9 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "liga" 1, "kern" 1;
+  font-variant-ligatures: common-ligatures;
+  font-kerning: normal;
 }
 /* Utilities for long numbers (e.g., VAT) - optimized */
 .nowrap-ellips { 
@@ -42,7 +62,7 @@ html, body {
   background-size: contain;
   background-attachment: fixed;
   border: 2px solid #fbf7f7;
-  font-family: "Cairo", "Arial", sans-serif;
+  font-family: "Cairo", "Tajawal", "Amiri", "Scheherazade New", "Arial", sans-serif;
   direction: rtl;
   position: relative;
 }
@@ -52,6 +72,25 @@ html, body {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   padding: 12px;
+}
+
+/* تحسينات خاصة للخطوط العربية */
+.arabic-text {
+  font-family: "Cairo", "Tajawal", "Amiri", "Scheherazade New", "Arial", sans-serif;
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: bidi-override;
+  font-feature-settings: "liga" 1, "kern" 1;
+  font-variant-ligatures: common-ligatures;
+  word-spacing: normal;
+  letter-spacing: normal;
+  line-height: 1.6;
+}
+
+/* ضمان ربط الحروف العربية */
+* {
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
 }
 
 /* PDF locking to preserve exact layout on export */
