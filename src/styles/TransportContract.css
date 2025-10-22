@@ -82,8 +82,8 @@ html, body {
 
 /* PDF locking to preserve exact layout on export - optimized */
 .pdf-mode {
-  font-size: 85%; /* تقليل معتدل ليلتزم بصفحتين */
-  line-height: 1.3;
+  font-size: 80%; /* تقليل أكثر ليلتزم بصفحتين */
+  line-height: 1.2;
   /* تحسين الأداء */
   will-change: transform;
   transform: translateZ(0); /* تفعيل GPU acceleration */
@@ -582,6 +582,14 @@ html, body {
   padding-top: 20px; /* إضافة حشو داخلي من الأعلى */
 }
 
+/* على الموبايل فقط: إلغاء الكسر الإجباري لتفادي صفحة فارغة بالمنتصف */
+.pdf-mode.pdf-mobile .contract-outer + .contract-outer {
+  page-break-before: auto;
+  break-before: auto;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
 /* ضبط الارتفاع الإجمالي للمحتوى - إزالة القيود المفرطة */
 .pdf-mode .contract-outer:first-child {
   max-height: none;
@@ -598,12 +606,12 @@ html, body {
 }
 
 /* ضغط عناصر كبيرة لتقليل الارتفاع الكلي */
-.pdf-mode .header .title-logo { width: 100px; }
-.pdf-mode .wrapper-box { margin: 8px; gap: 8px; }
-.pdf-mode .driver-notice-box { font-size: 10px; }
-.pdf-mode .passenger-table td, .pdf-mode .passenger-table th { padding: 4px; font-size: 10px; }
-.pdf-mode .trip-table td, .pdf-mode .trip-table th { padding: 4px; font-size: 10px; }
-.pdf-mode .my-table.first-party td, .pdf-mode .my-table.first-party th { padding: 4px 6px; font-size: 10px; }
+.pdf-mode .header .title-logo { width: 90px; }
+.pdf-mode .wrapper-box { margin: 6px; gap: 6px; }
+.pdf-mode .driver-notice-box { font-size: 9px; }
+.pdf-mode .passenger-table td, .pdf-mode .passenger-table th { padding: 3px; font-size: 9px; }
+.pdf-mode .trip-table td, .pdf-mode .trip-table th { padding: 3px; font-size: 9px; }
+.pdf-mode .my-table.first-party td, .pdf-mode .my-table.first-party th { padding: 3px 4px; font-size: 9px; }
 /* ضغط صور الرأس */
 .pdf-mode .header-image img { max-height: 140px !important; }
 .pdf-mode .header-image.duo img:first-child { width: 70%; height: auto; }
@@ -614,9 +622,9 @@ html, body {
 .pdf-mode .passenger-table,
 .pdf-mode .my-table.first-party,
 .pdf-mode .car-trips { margin: 8px 0 !important; }
-.pdf-mode .meta-row { margin: 6px 0 !important; }
-.pdf-mode .main-title { font-size: 14px !important; }
-.pdf-mode .sub-title { font-size: 10px !important; }
+.pdf-mode .meta-row { margin: 5px 0 !important; }
+.pdf-mode .main-title { font-size: 12px !important; }
+.pdf-mode .sub-title { font-size: 9px !important; }
 
 /* ضبط الشريط السفلي ليكون في سطر واحد */
 .pdf-mode .header-image.duo {
@@ -654,14 +662,14 @@ html, body {
 /* ضغط الشريط السفلي النصي */
 .pdf-mode div[style*="background-color: #ffeb3b"],
 .pdf-mode .footer-message {
-  font-size: 13px !important;
-  padding: 8px !important;
-  margin: 4px 0 !important;
-  line-height: 1.3 !important;
+  font-size: 11px !important;
+  padding: 6px !important;
+  margin: 3px 0 !important;
+  line-height: 1.2 !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-height: 35px !important;
+  max-height: 30px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -677,271 +685,174 @@ html, body {
   max-height: 120px !important;
   object-fit: contain !important;
 }
-/* هواتف صغيرة: دمج وتبسيط - تحسينات مشابهة لإعدادات الفيل */
+/* هواتف صغيرة: دمج وتبسيط */
 @media (max-width: 400px) {
-  .contract-outer { 
-    padding: 5px; 
-    margin: 5px; 
-    font-size: 10px; 
-    max-width: 100%; 
-    overflow-x: auto; 
-    transform: none; 
-    transform-origin: top center;
-    /* تحسينات الأداء للهواتف */
-    contain: layout style paint;
-    will-change: transform;
-  }
-  .main-title { font-size: 10px; }
-  .sub-title { font-size: 8px; }
+  .contract-outer { padding: 5px; margin: 5px; font-size: 9px; max-width: 100%; overflow-x: auto; transform: none; transform-origin: top center; }
+  .main-title { font-size: 9px; }
+  .sub-title { font-size: 7px; }
 
   .header { gap: 3px; flex-wrap: nowrap; margin-bottom: 3px; }
   
   /* تصغير خط الهيدر للهواتف الصغيرة */
-  .header .logo-text { font-size: 8px; line-height: 1.2; }
-  .header .company-info { font-size: 8px; line-height: 1.2; }
-  .header .center-title .title-logo { width: 80px; }
-  .meta-row { gap: 3px; flex-wrap: nowrap; margin: 8px 0; }
+  .header .logo-text { font-size: 7px; line-height: 1.1; }
+  .header .company-info { font-size: 7px; line-height: 1.1; }
+  .header .center-title .title-logo { width: 70px; }
+  .meta-row { gap: 3px; flex-wrap: nowrap; margin: 6px 0; }
 
-  /* إصلاح مشكلة صندوق السائق المقسوم - تخطيط عمودي */
-  .wrapper-box { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 6px !important; 
-    padding: 4px !important; 
-    margin: 8px !important;
-    width: 100% !important;
-  }
-  
-  .driver-notice-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important; 
-    font-size: 9px !important; 
-    line-height: 1.2 !important; 
-    text-align: center !important; 
-    margin: 0 !important;
-    border: 2px solid #bbb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  }
-  
-  .image-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important; 
-    text-align: center !important; 
-    overflow: hidden !important;
-    margin-top: 5px !important;
-  }
-  
-  .image-box img { 
-    max-width: 180px !important; 
-    height: auto !important; 
-    display: block !important; 
-    margin: 0 auto !important;
-    object-fit: contain !important;
-  }
-  
+  /* اجعل صندوق التنبيه والصورة في صف واحد على كل الشاشات */
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 4px; padding: 4px; margin: 8px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; font-size: 9px; line-height: 1.2; text-align: right; margin: 0; }
+  .image-box { flex: 0 0 100px; max-width: 100px; text-align: center; overflow: hidden; }
+  .image-box img { max-width: 100%; height: auto; display: block; }
   .driver-notice-box .content-box span,
-  .driver-notice-box .content-box p { 
-    font-size: 9px !important; 
-    display: block !important; 
-    margin-bottom: 3px !important; 
-  }
+  .driver-notice-box .content-box p { font-size: 9px; display: block; margin-bottom: 3px; }
+  .image-box img { max-width: 90%; margin: 0 auto; height: auto; }
 
   /* جداول قابلة للتمرير وتخفيف الحشوات */
-  table { 
-    display: block; 
-    width: 100%; 
-    overflow-x: auto; 
-    margin: 8px 0;
-    /* تحسين الأداء */
-    contain: layout;
-  }
+  table { display: block; width: 100%; overflow-x: auto; margin: 8px 0; }
   table thead, table tbody, table tr { width: 100%; }
   .my-table.first-party th, .my-table.first-party td,
   .car-trips th, .car-trips td,
   .trip-table th, .trip-table td,
-  .passenger-table th, .passenger-table td { 
-    font-size: 9px; 
-    padding: 3px; 
-    white-space: nowrap;
-    /* تحسين الأداء */
-    contain: layout style;
-  }
-  .meta-row p { white-space: nowrap; font-size: 10px; }
-  
-  /* إخفاء البوكس الأزرق الجانبي على الهواتف الصغيرة */
-  .side-box { display: none !important; }
+  .passenger-table th, .passenger-table td { font-size: 8px; padding: 2px; white-space: nowrap; }
+  .meta-row p { white-space: nowrap; font-size: 9px; }
 }
 
 /* حذف تكرار ميديا الهواتف الصغيرة: تم دمجها أعلاه */
 
-/* 401px - 600px - تحسينات مشابهة لإعدادات الفيل */
+/* 401px - 600px */
 @media (min-width: 401px) and (max-width: 600px) {
-  .contract-outer { 
-    padding: 8px; 
-    margin: 5px;
-    /* تحسينات الأداء */
-    contain: layout style paint;
-    will-change: transform;
-  }
-  .main-title { font-size: 12px; }
-  .sub-title { font-size: 9px; }
+  .contract-outer { padding: 8px; margin: 5px; font-size: 10px; }
+  .main-title { font-size: 11px; }
+  .sub-title { font-size: 8px; }
 
-  /* إصلاح مشكلة صندوق السائق - تخطيط عمودي محسن */
-  .wrapper-box { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 8px !important; 
-    margin: 6px !important;
-    width: 100% !important;
-  }
-  
-  .driver-notice-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important;
-    font-size: 10px !important;
-    line-height: 1.3 !important;
-    text-align: center !important;
-    border: 2px solid #bbb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  }
-  
-  .image-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important;
-    text-align: center !important;
-    margin-top: 5px !important;
-  }
-  
-  .image-box img {
-    max-width: 200px !important;
-    max-height: 130px !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    display: block !important;
-    object-fit: contain !important;
-  }
-  
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 6px; margin: 6px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; }
+  .image-box { flex: 0 0 120px; max-width: 120px; }
   .header { gap: 6px; margin-bottom: 5px; flex-wrap: nowrap; }
   
   /* تصغير خط الهيدر للهواتف المتوسطة */
-  .header .logo-text { font-size: 9px; line-height: 1.3; }
-  .header .company-info { font-size: 9px; line-height: 1.3; }
-  .header .center-title .title-logo { width: 100px; }
-  .meta-row { gap: 5px; margin: 10px 0; }
+  .header .logo-text { font-size: 8px; line-height: 1.2; }
+  .header .company-info { font-size: 8px; line-height: 1.2; }
+  .header .center-title .title-logo { width: 90px; }
+  .meta-row { gap: 5px; margin: 8px 0; }
 
-  /* إخفاء البوكس الأزرق الجانبي */
-  .side-box { display: none !important; }
+  /* السليد */
+  .side-box {
+    flex: 0 0 30%;         /* تقريبًا ثلث العرض */
+    min-width: 100px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* صندوق التنبيه */
+  .driver-notice-box {
+    flex: 1 1 65%;         /* ياخد الباقي */
+    min-width: 150px;
+    box-sizing: border-box;
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: center;
+  }
 
   .driver-notice-box .content-box span,
   .driver-notice-box .content-box p {
-    display: block !important;
-    margin-bottom: 3px !important;
-    font-size: 10px !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    hyphens: auto !important;
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
+  /* الصورة */
+  .image-box {
+    width: 100%;           /* تظهر تحتهم إذا ضاق المكان */
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .image-box img {
+    max-width: 90%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  .image-box { width: 100%; margin-top: 10px; }
+  .image-box img { max-width: 85%; height: auto; }
   .my-table.first-party th, .my-table.first-party td,
   .car-trips th, .car-trips td,
   .trip-table th, .trip-table td,
-  .passenger-table th, .passenger-table td { 
-    font-size: 10px; 
-    padding: 4px; 
-    white-space: normal;
-    /* تحسين الأداء */
-    contain: layout style;
-  }
+  .passenger-table th, .passenger-table td { font-size: 9px; padding: 3px; white-space: normal; }
   
   /* تحسين خط اتفاق العقد للهواتف المتوسطة */
-  .contract-row p { font-size: 10px; line-height: 1.7; font-weight: 500; }
-  .conditions p { font-size: 10px; line-height: 1.7; font-weight: 500; }
+  .contract-row p { font-size: 9px; line-height: 1.6; font-weight: 500; }
+  .conditions p { font-size: 9px; line-height: 1.6; font-weight: 500; }
 }
 
-/* 601px - 768px - تحسينات مشابهة لإعدادات الفيل */
+/* 601px - 768px */
 @media (min-width: 601px) and (max-width: 768px) {
-  .main-title { font-size: 14px; }
-  .sub-title { font-size: 10px; }
+  .contract-outer { font-size: 11px; }
+  .main-title { font-size: 13px; }
+  .sub-title { font-size: 9px; }
 
-  /* إصلاح مشكلة صندوق السائق - تخطيط عمودي محسن */
-  .wrapper-box { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 10px !important; 
-    margin: 8px !important;
-    width: 100% !important;
-  }
-  
-  .driver-notice-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important;
-    font-size: 11px !important;
-    line-height: 1.4 !important;
-    text-align: center !important;
-    border: 2px solid #bbb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  }
-  
-  .image-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important;
-    text-align: center !important;
-    margin-top: 5px !important;
-  }
-  
-  .image-box img {
-    max-width: 250px !important;
-    max-height: 150px !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    display: block !important;
-    object-fit: contain !important;
-  }
-  
+  .wrapper-box { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 8px; margin: 8px; }
+  .driver-notice-box { flex: 1 1 auto; width: auto; }
+  .image-box { flex: 0 0 140px; max-width: 140px; }
   .header { gap: 8px; margin-bottom: 8px; flex-wrap: nowrap; }
   
   /* تصغير خط الهيدر للهواتف الأكبر */
-  .header .logo-text { font-size: 10px; line-height: 1.4; }
-  .header .company-info { font-size: 10px; line-height: 1.4; }
-  .header .center-title .title-logo { width: 120px; }
-  .meta-row { gap: 8px; margin: 12px 0; }
+  .header .logo-text { font-size: 9px; line-height: 1.3; }
+  .header .company-info { font-size: 9px; line-height: 1.3; }
+  .header .center-title .title-logo { width: 110px; }
+  .meta-row { gap: 8px; margin: 10px 0; }
 
-  /* إخفاء البوكس الأزرق الجانبي */
-  .side-box { display: none !important; }
+  .side-box {
+    flex: 0 0 35%;         /* تقريبًا ثلث العرض */
+    min-width: 120px;      /* أقل عرض قبل أن يلف */
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .driver-notice-box {
+    flex: 1 1 60%;         /* ياخد الباقي */
+    min-width: 150px;      /* أقل عرض قبل أن يلف */
+    box-sizing: border-box;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: left;
+  }
 
   .driver-notice-box .content-box span,
   .driver-notice-box .content-box p {
-    display: block !important;
-    margin-bottom: 4px !important;
-    font-size: 11px !important;
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-    hyphens: auto !important;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
-  
+  /* الصورة */
+  .image-box {
+    width: 100%;           /* تظهر تحتهم إذا ضاق المكان */
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  .image-box img {
+    max-width: 90%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
   .my-table.first-party th, .my-table.first-party td,
   .car-trips th, .car-trips td,
   .trip-table th, .trip-table td,
-  .passenger-table th, .passenger-table td { 
-    font-size: 11px; 
-    padding: 6px; 
-    white-space: normal;
-    /* تحسين الأداء */
-    contain: layout style;
-  }
+  .passenger-table th, .passenger-table td { font-size: 10px; padding: 5px; white-space: normal; }
   
   /* تحسين خط اتفاق العقد للهواتف الأكبر */
-  .contract-row p { font-size: 11px; line-height: 1.8; font-weight: 500; }
-  .conditions p { font-size: 11px; line-height: 1.8; font-weight: 500; }
+  .contract-row p { font-size: 10px; line-height: 1.7; font-weight: 500; }
+  .conditions p { font-size: 10px; line-height: 1.7; font-weight: 500; }
 }
 
 /* شاشات عريضة: إعادة سلوك الديسكتوب الأصلي */
@@ -958,62 +869,19 @@ html, body {
   .image-box img { max-width: 260px; }
 }
 
-/* إعدادات خاصة لـ iPhone 13 (عرض منطقي ~390px) - حل مشكلة صندوق السائق المقسوم */
+/* ضبط خاص لشاشات iPhone 12 تقريبًا (عرض منطقي ~390px) */
 @media (min-width: 380px) and (max-width: 400px) {
   /* تليين العناوين والترويسات */
-  .main-title { font-size: 10px; }
-  .sub-title { font-size: 8px; }
-  .meta-row { gap: 4px; flex-wrap: wrap; margin: 6px 0; }
-  .meta-row p { white-space: normal; font-size: 9px; }
+  .main-title { font-size: 9px; }
+  .sub-title { font-size: 7px; }
+  .meta-row { gap: 4px; flex-wrap: wrap; margin: 5px 0; }
+  .meta-row p { white-space: normal; font-size: 8px; }
   
-  /* تصغير خط الهيدر لـ iPhone 13 */
-  .header .logo-text { font-size: 7px; line-height: 1.1; }
-  .header .company-info { font-size: 7px; line-height: 1.1; }
-  .header .center-title .title-logo { width: 70px; }
+  /* تصغير خط الهيدر لـ iPhone 12 */
+  .header .logo-text { font-size: 6px; line-height: 1.0; }
+  .header .company-info { font-size: 6px; line-height: 1.0; }
+  .header .center-title .title-logo { width: 65px; }
   .header { gap: 2px; }
-
-  /* إصلاح مشكلة صندوق السائق المقسوم على iPhone 13 */
-  .wrapper-box { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 8px !important; 
-    margin: 8px !important;
-    width: 100% !important;
-  }
-  
-  /* صندوق التنبيه للسائق - عرض كامل بدون تقسيم */
-  .driver-notice-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important; 
-    font-size: 9px !important;
-    line-height: 1.3 !important;
-    text-align: center !important;
-    border: 2px solid #bbb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
-  }
-  
-  /* إخفاء البوكس الأزرق الجانبي */
-  .side-box { display: none !important; }
-  
-  /* صندوق الصورة - عرض كامل تحت صندوق التنبيه */
-  .image-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important;
-    text-align: center !important;
-    margin-top: 5px !important;
-  }
-  
-  .image-box img {
-    max-width: 200px !important;
-    max-height: 120px !important;
-    height: auto !important;
-    margin: 0 auto !important;
-    display: block !important;
-    object-fit: contain !important;
-  }
 
   /* جعل الجداول ثابتة الأعمدة وتلتف النصوص بدون تكسير حروف عربية */
   .my-table.first-party,
@@ -1029,8 +897,8 @@ html, body {
   .trip-table th, .trip-table td,
   .passenger-table th, .passenger-table td,
   .VEHICLE-table th, .VEHICLE-table td {
-    font-size: 10px;
-    padding: 4px 3px;
+    font-size: 8px;
+    padding: 3px 2px;
     white-space: nowrap;          /* لا يلف الكلمات */
     word-break: normal;           /* يمنع تكسير الحروف العربية */
     overflow: hidden;             /* منع خروج النص */
@@ -1057,6 +925,27 @@ html, body {
   /* الصور لا تكون صغيرة جدًا */
   .header-image.duo img:first-child { width: 75%; height: auto; }
   .header-image.duo img:last-child { flex: 0 0 30%; max-height: 160px; }
+  .image-box img { max-width: 100%; height: auto; }
+
+  /* إخفاء البوكس اللبني لتنبيه السائق على iPhone 12 */
+  .side-box { display: none !important; }
+  .driver-notice-box { flex: 1 1 100% !important; max-width: 100% !important; }
+  .wrapper-box { gap: 8px; }
+
+  /* تصغير الصورة أسفل صندوق السائق على iPhone 12 */
+  .wrapper-box .image-box img {
+    max-width: 180% !important;
+    max-height: 130px !important;
+    height: auto !important;
+    margin: 3px auto 0 !important;
+    display: block;
+    object-fit: contain;
+  }
+
+  /* توحيد صندوق التنبيه لعرض كامل لتفادي الانزياح */
+  .wrapper-box { flex-direction: column; gap: 8px; }
+  .driver-notice-box { flex: 1 1 100%; max-width: 100%; width: 100%; }
+  .side-box { width: 100%; align-self: auto; }
 
   /* ضبط دقيق لجدول الطرف الأول والثاني (4 أعمدة) - أعمدة أوسع */
   .my-table.first-party { 
@@ -1089,7 +978,7 @@ html, body {
 
   /* جدول بيانات النقل car-trips (4 أعمدة) - أعمدة أوسع */
   .car-trips { table-layout: fixed; width: 100%; }
-  .car-trips th, .car-trips td { border-width: 1px; padding: 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+  .car-trips th, .car-trips td { border-width: 1px; padding: 3px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 8px; }
   .car-trips thead th:nth-child(1), .car-trips tbody td:nth-child(1) { width: 10%; }
   .car-trips thead th:nth-child(2), .car-trips tbody td:nth-child(2) { width: 40%; }
   .car-trips thead th:nth-child(3), .car-trips tbody td:nth-child(3) { width: 10%; }
@@ -1103,37 +992,10 @@ html, body {
 
   /* جدول مسار الرحلة trip-table - أعمدة أوسع */
   .trip-table { table-layout: fixed; }
-  .trip-table th, .trip-table td { border-width: 1px; padding: 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+  .trip-table th, .trip-table td { border-width: 1px; padding: 3px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 8px; }
   .trip-table th[colspan="3"] { white-space: nowrap; }
   .trip-table col:nth-child(1) { width: 35% !important; }
   .trip-table col:nth-child(2) { width: 15% !important; }
   .trip-table col:nth-child(3) { width: 35% !important; }
   .trip-table col:nth-child(4) { width: 15% !important; }
-}
-
-/* إعدادات إضافية لـ iPhone 13 Pro و iPhone 14 (عرض منطقي ~393px) */
-@media (min-width: 390px) and (max-width: 410px) {
-  /* نفس الإعدادات مع تحسينات إضافية */
-  .wrapper-box { 
-    display: flex !important; 
-    flex-direction: column !important; 
-    align-items: center !important; 
-    gap: 10px !important; 
-    margin: 10px !important;
-    width: 100% !important;
-  }
-  
-  .driver-notice-box { 
-    flex: none !important; 
-    width: 100% !important; 
-    max-width: 100% !important; 
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-    text-align: center !important;
-  }
-  
-  .image-box img {
-    max-width: 220px !important;
-    max-height: 140px !important;
-  }
 }

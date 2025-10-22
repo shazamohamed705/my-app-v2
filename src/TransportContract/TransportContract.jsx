@@ -313,11 +313,11 @@ import html2pdf from "html2pdf.js";
 
       // Lock layout for PDF to match on-screen design
       element.classList.add('pdf-mode');
+      const isMobile = typeof window !== 'undefined' && (window.matchMedia && window.matchMedia('(max-width: 600px)').matches);
+      if (isMobile) {
+        element.classList.add('pdf-mobile');
+      }
 
-      // تحسين الأداء: كشف نوع الجهاز وتطبيق إعدادات مناسبة
-      const isMobile = window.innerWidth <= 768;
-      const isSmallMobile = window.innerWidth <= 400;
-      
       // قياس الارتفاعين لتحديد إن كنا سنتجاوز صفحتين
       const approximateIsTooTallForTwoPages = () => {
         const pxPerMm = 3.78; // تقريب بصري شائع
@@ -385,23 +385,16 @@ import html2pdf from "html2pdf.js";
         }
       }
 
-      // تحسين خيارات PDF للهواتف المحمولة
       const options = {
         filename: `contract-${trip?.id || "trip"}.pdf`,
-        margin: isMobile ? [8, 8, 8, 8] : [10, 10, 10, 10], // هوامش أصغر للهواتف
-        image: { 
-          type: 'jpeg', 
-          quality: isMobile ? 0.7 : 0.8 // جودة أقل للهواتف لتوفير المساحة
-        },
+        margin: (typeof window !== 'undefined' && (window.matchMedia && window.matchMedia('(max-width: 600px)').matches)) ? [6, 6, 6, 6] : [10, 10, 10, 10],
+        image: { type: 'jpeg', quality: 0.8 },
         html2canvas: { 
-          scale: isMobile ? 1.2 : 1.5, // مقياس أصغر للهواتف
+          scale: 1.5,
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          logging: false,
-          // تحسينات إضافية للهواتف
-          width: isMobile ? element.scrollWidth : undefined,
-          height: isMobile ? element.scrollHeight : undefined
+          logging: false
         },
         jsPDF: { 
           unit: 'mm', 
@@ -410,42 +403,18 @@ import html2pdf from "html2pdf.js";
         }
       };
 
-      // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين - تحسينات للهواتف
+      // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
       if (approximateIsTooTallForTwoPages()) {
-        if (isSmallMobile) {
-          element.style.zoom = '0.75';
-          element.style.fontSize = '0.7em';
-        } else if (isMobile) {
-          element.style.zoom = '0.8';
-          element.style.fontSize = '0.75em';
-        } else {
-          element.style.zoom = '0.9';
-          element.style.fontSize = '0.85em';
-        }
+        element.style.zoom = '0.9';
+        element.style.fontSize = '0.85em';
       }
       if (approximateIsTooTallForTwoPages()) {
-        if (isSmallMobile) {
-          element.style.zoom = '0.7';
-          element.style.fontSize = '0.65em';
-        } else if (isMobile) {
-          element.style.zoom = '0.75';
-          element.style.fontSize = '0.7em';
-        } else {
-          element.style.zoom = '0.85';
-          element.style.fontSize = '0.8em';
-        }
+        element.style.zoom = '0.85';
+        element.style.fontSize = '0.8em';
       }
       if (approximateIsTooTallForTwoPages()) {
-        if (isSmallMobile) {
-          element.style.zoom = '0.65';
-          element.style.fontSize = '0.6em';
-        } else if (isMobile) {
-          element.style.zoom = '0.7';
-          element.style.fontSize = '0.65em';
-        } else {
-          element.style.zoom = '0.8';
-          element.style.fontSize = '0.75em';
-        }
+        element.style.zoom = '0.8';
+        element.style.fontSize = '0.75em';
       }
 
       console.log("Creating PDF worker...");
@@ -467,6 +436,7 @@ import html2pdf from "html2pdf.js";
       // Unlock layout
       element.style.zoom = '';
       element.classList.remove('pdf-mode');
+      element.classList.remove('pdf-mobile');
 
       return blob;
     } catch (error) {
@@ -484,6 +454,7 @@ import html2pdf from "html2pdf.js";
       // Unlock layout
       element.style.zoom = '';
       element.classList.remove('pdf-mode');
+      element.classList.remove('pdf-mobile');
       
       throw error;
     }
