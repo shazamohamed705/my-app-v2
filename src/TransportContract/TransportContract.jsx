@@ -258,15 +258,21 @@ import html2pdf from "html2pdf.js";
           const urlObj = new URL(normalizedUrl);
           
           if (urlObj.hostname.includes('my-bus.storage-te.com')) {
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.DEV) {
               // Use Vite proxy for development to avoid CORS
               return `/__mbus__${urlObj.pathname}${urlObj.search}`;
             } else {
-              // For production, use direct URL with cache busting
-              const params = new URLSearchParams(urlObj.search);
-              params.set('_t', Date.now().toString());
-              urlObj.search = params.toString();
-              return urlObj.toString();
+              // For production on Vercel, use proxy API
+              if (import.meta.env.VERCEL === '1') {
+                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(normalizedUrl)}`;
+                return proxyUrl;
+              } else {
+                // For other production environments, use direct URL with cache busting
+                const params = new URLSearchParams(urlObj.search);
+                params.set('_t', Date.now().toString());
+                urlObj.search = params.toString();
+                return urlObj.toString();
+              }
             }
           }
         }

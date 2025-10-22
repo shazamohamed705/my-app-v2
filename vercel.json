@@ -23,5 +23,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/proxy-image.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 }

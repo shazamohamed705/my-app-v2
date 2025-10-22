@@ -8,6 +8,8 @@ export default defineConfig({
     // Make environment variables available in browser
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
     'process.env.VERCEL': JSON.stringify(process.env.VERCEL || '0'),
+    // Ensure Vercel environment variable is available
+    'import.meta.env.VERCEL': JSON.stringify(process.env.VERCEL || '0'),
   },
   build: {
     // تحسينات الأداء للبناء
