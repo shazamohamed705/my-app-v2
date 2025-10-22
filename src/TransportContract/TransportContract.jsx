@@ -314,6 +314,10 @@ import html2pdf from "html2pdf.js";
       // Lock layout for PDF to match on-screen design
       element.classList.add('pdf-mode');
 
+      // تحسين الأداء: كشف نوع الجهاز وتطبيق إعدادات مناسبة
+      const isMobile = window.innerWidth <= 768;
+      const isSmallMobile = window.innerWidth <= 400;
+      
       // قياس الارتفاعين لتحديد إن كنا سنتجاوز صفحتين
       const approximateIsTooTallForTwoPages = () => {
         const pxPerMm = 3.78; // تقريب بصري شائع
@@ -381,16 +385,23 @@ import html2pdf from "html2pdf.js";
         }
       }
 
+      // تحسين خيارات PDF للهواتف المحمولة
       const options = {
         filename: `contract-${trip?.id || "trip"}.pdf`,
-        margin: [10, 10, 10, 10],
-        image: { type: 'jpeg', quality: 0.8 },
+        margin: isMobile ? [8, 8, 8, 8] : [10, 10, 10, 10], // هوامش أصغر للهواتف
+        image: { 
+          type: 'jpeg', 
+          quality: isMobile ? 0.7 : 0.8 // جودة أقل للهواتف لتوفير المساحة
+        },
         html2canvas: { 
-          scale: 1.5,
+          scale: isMobile ? 1.2 : 1.5, // مقياس أصغر للهواتف
           useCORS: true,
           allowTaint: true,
           backgroundColor: '#ffffff',
-          logging: false
+          logging: false,
+          // تحسينات إضافية للهواتف
+          width: isMobile ? element.scrollWidth : undefined,
+          height: isMobile ? element.scrollHeight : undefined
         },
         jsPDF: { 
           unit: 'mm', 
@@ -399,18 +410,42 @@ import html2pdf from "html2pdf.js";
         }
       };
 
-      // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
+      // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين - تحسينات للهواتف
       if (approximateIsTooTallForTwoPages()) {
-        element.style.zoom = '0.9';
-        element.style.fontSize = '0.85em';
+        if (isSmallMobile) {
+          element.style.zoom = '0.75';
+          element.style.fontSize = '0.7em';
+        } else if (isMobile) {
+          element.style.zoom = '0.8';
+          element.style.fontSize = '0.75em';
+        } else {
+          element.style.zoom = '0.9';
+          element.style.fontSize = '0.85em';
+        }
       }
       if (approximateIsTooTallForTwoPages()) {
-        element.style.zoom = '0.85';
-        element.style.fontSize = '0.8em';
+        if (isSmallMobile) {
+          element.style.zoom = '0.7';
+          element.style.fontSize = '0.65em';
+        } else if (isMobile) {
+          element.style.zoom = '0.75';
+          element.style.fontSize = '0.7em';
+        } else {
+          element.style.zoom = '0.85';
+          element.style.fontSize = '0.8em';
+        }
       }
       if (approximateIsTooTallForTwoPages()) {
-        element.style.zoom = '0.8';
-        element.style.fontSize = '0.75em';
+        if (isSmallMobile) {
+          element.style.zoom = '0.65';
+          element.style.fontSize = '0.6em';
+        } else if (isMobile) {
+          element.style.zoom = '0.7';
+          element.style.fontSize = '0.65em';
+        } else {
+          element.style.zoom = '0.8';
+          element.style.fontSize = '0.75em';
+        }
       }
 
       console.log("Creating PDF worker...");
