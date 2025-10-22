@@ -25,6 +25,8 @@ v  // Debug logging
   if (!url) {
     console.error('No URL parameter provided');
     console.error('Available query params:', Object.keys(req.query));
+    console.error('Full request URL:', req.url);
+    console.error('Request headers:', req.headers);
     return res.status(400).json({ error: 'URL parameter is required' });
   }
 
