@@ -344,7 +344,36 @@ import html2pdf from "html2pdf.js";
         return totalHeight > usableHeightPx;
       };
 
-      // Enhanced image processing with better error handling
+      // ✅ Replace images with Base64 ONLY on production (Vercel)
+      const isLocal =
+        window.location.hostname === "localhost" ||
+        window.location.hostname.startsWith("192.168.");
+
+      if (!isLocal) {
+        console.log("🌐 Production environment detected, converting images to Base64...");
+        const images = document.querySelectorAll("img");
+        for (const img of images) {
+          try {
+            const response = await fetch(img.src, { mode: "cors" });
+            const blob = await response.blob();
+            const reader = new FileReader();
+            await new Promise((resolve) => {
+              reader.onloadend = () => {
+                img.src = reader.result; // ✅ Replace image src with Base64
+                resolve();
+              };
+              reader.readAsDataURL(blob);
+            });
+            console.log("✅ Converted image to Base64:", img.src.slice(0, 50));
+          } catch (err) {
+            console.warn("⚠️ Failed to convert image:", img.src, err);
+          }
+        }
+      } else {
+        console.log("🏠 Local environment detected, keeping original image URLs");
+      }
+
+      // Enhanced image processing with better error handling (for local development)
       const imgs = Array.from(element.querySelectorAll('img'));
       const originalSrcs = new Map();
       
