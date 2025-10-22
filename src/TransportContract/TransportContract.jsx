@@ -401,10 +401,16 @@ import html2pdf from "html2pdf.js";
 
       // محاولة ضغط إضافية لو ما زال يتجاوز صفحتين
       if (approximateIsTooTallForTwoPages()) {
-        element.style.zoom = '0.95';
+        element.style.zoom = '0.9';
+        element.style.fontSize = '0.85em';
       }
       if (approximateIsTooTallForTwoPages()) {
-        element.style.zoom = '0.9';
+        element.style.zoom = '0.85';
+        element.style.fontSize = '0.8em';
+      }
+      if (approximateIsTooTallForTwoPages()) {
+        element.style.zoom = '0.8';
+        element.style.fontSize = '0.75em';
       }
 
       console.log("Creating PDF worker...");
@@ -914,7 +920,18 @@ import html2pdf from "html2pdf.js";
               {safeImgSrc(driver?.driver_profile?.pdf_image || trip?.driver?.driver_profile?.pdf_image) && <img src={safeImgSrc(driver?.driver_profile?.pdf_image || trip?.driver?.driver_profile?.pdf_image)} crossOrigin="anonymous" alt="Driver PDF" />}
               {safeImgSrc(vehicle?.stamp_photo) && <img src={safeImgSrc(vehicle?.stamp_photo)} crossOrigin="anonymous" alt="Stamp" />}
             </div>
-            <div style={{ backgroundColor: "#ffeb3b", color: "red", fontWeight: "bold", fontSize: "16px", textAlign: "center", padding: "10px", borderBottom: "3px solid red" }}>
+            <div className="footer-message" style={{ 
+              backgroundColor: "#ffeb3b", 
+              color: "red", 
+              fontWeight: "bold", 
+              fontSize: "14px", 
+              textAlign: "center", 
+              padding: "8px", 
+              borderBottom: "2px solid red",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis"
+            }}>
               {pdfData?.footer_message || " ----"}
             </div>
           </div>

@@ -49,6 +49,9 @@ html, body {
   font-family: "Cairo", "Tajawal", "Amiri", "Scheherazade New", "Arial", sans-serif;
   direction: rtl;
   position: relative;
+  /* تحسينات الأداء */
+  contain: layout style paint;
+  will-change: transform;
 }
 
 /* إضافة خلفية شفافة للمحتوى لضمان وضوح النص */
@@ -77,23 +80,33 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
-/* PDF locking to preserve exact layout on export */
+/* PDF locking to preserve exact layout on export - optimized */
 .pdf-mode {
-  font-size: 80%; /* تقليل أقوى ليلتزم بصفحتين */
-  line-height: 1.25;
+  font-size: 85%; /* تقليل معتدل ليلتزم بصفحتين */
+  line-height: 1.3;
+  /* تحسين الأداء */
+  will-change: transform;
+  transform: translateZ(0); /* تفعيل GPU acceleration */
 }
 
 .pdf-mode .contract-outer,
 .pdf-mode.contract-outer {
-  width: 680px; /* تضييق إضافي لتقليل الارتفاع الإجمالي */
+  width: 680px; /* تضييق معتدل لتقليل الارتفاع الإجمالي */
   max-width: 680px;
   margin: 0 auto;
   transform: none !important;
   box-shadow: none !important;
+  page-break-inside: avoid;
 }
 /* تقليل الحشوات الداخلية لتصغير الارتفاع */
-.pdf-mode .contract-inner { padding: 6px !important; }
-.pdf-mode .contract-body { padding: 0 !important; }
+.pdf-mode .contract-inner { 
+  padding: 6px !important; 
+  margin: 0 !important;
+}
+.pdf-mode .contract-body { 
+  padding: 0 !important; 
+  margin: 0 !important;
+}
 
 /* Remove effects that can cause raster differences in PDF */
 .pdf-mode * {
@@ -556,8 +569,33 @@ html, body {
 }
 
 /* إجبار فاصل قبل الصفحة الثانية فقط، ومنع فواصل أخرى */
-.pdf-mode .contract-outer { page-break-inside: avoid; break-inside: avoid; }
-.pdf-mode .contract-outer + .contract-outer { page-break-before: always; break-before: page; }
+.pdf-mode .contract-outer { 
+  page-break-inside: avoid; 
+  break-inside: avoid; 
+  height: auto;
+  max-height: 100vh;
+}
+.pdf-mode .contract-outer + .contract-outer { 
+  page-break-before: always; 
+  break-before: page; 
+  margin-top: 20px; /* إضافة مسافة من الأعلى للصفحة الثانية */
+  padding-top: 20px; /* إضافة حشو داخلي من الأعلى */
+}
+
+/* ضبط الارتفاع الإجمالي للمحتوى - إزالة القيود المفرطة */
+.pdf-mode .contract-outer:first-child {
+  max-height: none;
+  overflow: visible;
+}
+
+.pdf-mode .contract-outer:last-child {
+  max-height: none;
+  overflow: visible;
+  /* ضبط موضع الصفحة الثانية */
+  position: relative;
+  top: 0;
+  transform: translateY(0);
+}
 
 /* ضغط عناصر كبيرة لتقليل الارتفاع الكلي */
 .pdf-mode .header .title-logo { width: 100px; }
@@ -569,7 +607,7 @@ html, body {
 /* ضغط صور الرأس */
 .pdf-mode .header-image img { max-height: 140px !important; }
 .pdf-mode .header-image.duo img:first-child { width: 70%; height: auto; }
-.pdf-mode .header-image.duo img:last-child { max-height: 110px; }
+.pdf-mode .header-image.duo img:last-child { max-height: 120px; }
 /* تقليل هوامش الجداول والمسافات الرأسية */
 .pdf-mode .VEHICLE-table,
 .pdf-mode .trip-table,
@@ -579,6 +617,66 @@ html, body {
 .pdf-mode .meta-row { margin: 6px 0 !important; }
 .pdf-mode .main-title { font-size: 14px !important; }
 .pdf-mode .sub-title { font-size: 10px !important; }
+
+/* ضبط الشريط السفلي ليكون في سطر واحد */
+.pdf-mode .header-image.duo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+/* ضبط موضع الصفحة الثانية عند عمل back - تحسين موضع البدي */
+.contract-outer:last-child {
+  margin-top: 10px;
+  padding-top: 10px;
+  position: relative;
+  top: -8px; /* رفع البدي قليلاً لأعلى في الوضع العادي */
+  transform: translateY(-5px); /* تحريك إضافي لأعلى */
+}
+
+/* ضبط خاص للصفحة الثانية في وضع PDF - تحسين موضع البدي */
+.pdf-mode .contract-outer:last-child {
+  margin-top: 15px;
+  padding-top: 15px;
+  position: relative;
+  top: -5px; /* رفع البدي قليلاً لأعلى */
+  transform: translateY(-3px); /* تحريك إضافي لأعلى */
+  clear: both;
+}
+
+.pdf-mode .header-image.duo img {
+  flex: 1;
+  max-height: 120px;
+  object-fit: contain;
+}
+
+/* ضغط الشريط السفلي النصي */
+.pdf-mode div[style*="background-color: #ffeb3b"],
+.pdf-mode .footer-message {
+  font-size: 13px !important;
+  padding: 8px !important;
+  margin: 4px 0 !important;
+  line-height: 1.3 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-height: 35px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ضبط خاص للصور في الشريط السفلي */
+.pdf-mode .header-image.duo {
+  margin: 6px 0 !important;
+  max-height: 120px !important;
+}
+
+.pdf-mode .header-image.duo img {
+  max-height: 120px !important;
+  object-fit: contain !important;
+}
 /* هواتف صغيرة: دمج وتبسيط */
 @media (max-width: 400px) {
   .contract-outer { padding: 5px; margin: 5px; font-size: 10px; max-width: 100%; overflow-x: auto; transform: none; transform-origin: top center; }
