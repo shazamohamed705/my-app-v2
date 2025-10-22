@@ -15,23 +15,46 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Debug logging
+  console.log('Request query:', req.query);
+  console.log('Request URL:', req.url);
+
   const { url } = req.query;
 
   if (!url) {
+    console.error('No URL parameter provided');
     return res.status(400).json({ error: 'URL parameter is required' });
   }
 
   try {
     // Decode the URL
-    const decodedUrl = decodeURIComponent(url);
+    let decodedUrl;
+    try {
+      decodedUrl = decodeURIComponent(url);
+    } catch (decodeError) {
+      console.error('URL decode error:', decodeError);
+      return res.status(400).json({ error: 'Invalid URL encoding' });
+    }
+    
+    console.log('Decoded URL:', decodedUrl);
     
     // Validate that the URL is from the allowed domain
     const allowedDomains = ['my-bus.storage-te.com'];
-    const urlObj = new URL(decodedUrl);
+    let urlObj;
+    
+    try {
+      urlObj = new URL(decodedUrl);
+    } catch (urlError) {
+      console.error('Invalid URL:', urlError);
+      return res.status(400).json({ error: 'Invalid URL format' });
+    }
     
     if (!allowedDomains.includes(urlObj.hostname)) {
+      console.error('Domain not allowed:', urlObj.hostname);
       return res.status(403).json({ error: 'Domain not allowed' });
     }
+
+    console.log('Fetching image from:', decodedUrl);
 
     // Fetch the image
     const response = await fetch(decodedUrl, {
@@ -40,7 +63,10 @@ export default async function handler(req, res) {
       },
     });
 
+    console.log('Fetch response status:', response.status);
+
     if (!response.ok) {
+      console.error('Failed to fetch image:', response.status, response.statusText);
       return res.status(response.status).json({ 
         error: `Failed to fetch image: ${response.statusText}` 
       });
@@ -48,6 +74,7 @@ export default async function handler(req, res) {
 
     // Get the content type
     const contentType = response.headers.get('content-type') || 'image/jpeg';
+    console.log('Content type:', contentType);
     
     // Set appropriate headers
     res.setHeader('Content-Type', contentType);
@@ -55,6 +82,7 @@ export default async function handler(req, res) {
     
     // Stream the image data
     const buffer = await response.arrayBuffer();
+    console.log('Image buffer size:', buffer.byteLength);
     res.send(Buffer.from(buffer));
 
   } catch (error) {

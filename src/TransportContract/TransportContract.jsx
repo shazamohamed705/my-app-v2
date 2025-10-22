@@ -263,8 +263,14 @@ import html2pdf from "html2pdf.js";
               return `/__mbus__${urlObj.pathname}${urlObj.search}`;
             } else {
               // For production on Vercel, use proxy API
-              if (import.meta.env.VERCEL === '1') {
+              // Check if we're on Vercel by domain or environment variable
+              const isVercel = import.meta.env.VERCEL === '1' || 
+                             window.location.hostname.includes('vercel.app') ||
+                             window.location.hostname.includes('vercel.com');
+              
+              if (isVercel) {
                 const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(normalizedUrl)}`;
+                console.log('Using Vercel proxy:', proxyUrl);
                 return proxyUrl;
               } else {
                 // For other production environments, use direct URL with cache busting
