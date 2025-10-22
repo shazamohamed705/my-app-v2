@@ -269,8 +269,12 @@ import html2pdf from "html2pdf.js";
                              window.location.hostname.includes('vercel.com');
               
               if (isVercel) {
-                const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(normalizedUrl)}`;
+                // Double encode to ensure proper handling
+                const encodedUrl = encodeURIComponent(normalizedUrl);
+                const proxyUrl = `/api/proxy-image?url=${encodedUrl}`;
                 console.log('Using Vercel proxy:', proxyUrl);
+                console.log('Original URL:', normalizedUrl);
+                console.log('Encoded URL:', encodedUrl);
                 return proxyUrl;
               } else {
                 // For other production environments, use direct URL with cache busting
