@@ -349,77 +349,108 @@ import html2pdf from "html2pdf.js";
         window.location.hostname === "localhost" ||
         window.location.hostname.startsWith("192.168.");
 
+      const originalSrcs = new Map();
+
       if (!isLocal) {
         console.log("🌐 Production environment detected, converting images to Base64...");
         const images = document.querySelectorAll("img");
+        let convertedCount = 0;
+        
         for (const img of images) {
           try {
-            const response = await fetch(img.src, { mode: "cors" });
+            // Skip if already Base64
+            if (img.src.startsWith('data:')) {
+              console.log("⏭️ Image already Base64, skipping:", img.src.slice(0, 50));
+              continue;
+            }
+            
+            // Store original src for restoration
+            originalSrcs.set(img, img.src);
+            
+            console.log("🔄 Converting image:", img.src);
+            const response = await fetch(img.src, { 
+              mode: "cors",
+              cache: "no-cache"
+            });
+            
+            if (!response.ok) {
+              console.warn("⚠️ Failed to fetch image:", response.status, img.src);
+              continue;
+            }
+            
             const blob = await response.blob();
             const reader = new FileReader();
-            await new Promise((resolve) => {
+            
+            await new Promise((resolve, reject) => {
               reader.onloadend = () => {
                 img.src = reader.result; // ✅ Replace image src with Base64
+                convertedCount++;
+                console.log("✅ Converted image to Base64:", img.src.slice(0, 50));
                 resolve();
+              };
+              reader.onerror = () => {
+                console.warn("⚠️ FileReader error for image:", img.src);
+                reject(new Error("FileReader error"));
               };
               reader.readAsDataURL(blob);
             });
-            console.log("✅ Converted image to Base64:", img.src.slice(0, 50));
           } catch (err) {
             console.warn("⚠️ Failed to convert image:", img.src, err);
+            // Hide broken images
+            img.style.display = 'none';
           }
         }
+        console.log(`🎯 Converted ${convertedCount} images to Base64, skipping further processing`);
       } else {
         console.log("🏠 Local environment detected, keeping original image URLs");
-      }
-
-      // Enhanced image processing with better error handling (for local development)
-      const imgs = Array.from(element.querySelectorAll('img'));
-      const originalSrcs = new Map();
-      
-      // Collect all image URLs for batch processing
-      const imageUrls = imgs
-        .map(img => img.getAttribute('src'))
-        .filter(src => src && !src.startsWith('data:'));
-      
-      console.log(`Processing ${imageUrls.length} images for PDF generation...`);
-      
-      // Process images with better error handling
-      const imageDataUrls = new Map();
-      
-      for (const url of imageUrls) {
-        try {
-          // Clean URL to avoid duplicate parameters
-          const cleanUrl = url.split('?')[0];
-          
-          // Use the clean URL directly for better performance
-          const dataUrl = cleanUrl;
-          
-          if (dataUrl) {
-            imageDataUrls.set(url, dataUrl);
-            console.log(`✅ Image processed: ${cleanUrl.substring(0, 50)}...`);
-          }
-        } catch (error) {
-          console.error(`❌ Error processing image ${url}:`, error);
-        }
-      }
-      
-      // Apply the converted images to the DOM
-      imgs.forEach(img => {
-        const src = img.getAttribute('src');
-        if (!src || src.startsWith('data:')) return;
         
-        const dataUrl = imageDataUrls.get(src);
-        if (dataUrl) {
-          originalSrcs.set(img, src);
-          img.setAttribute('src', dataUrl);
-          console.log(`Successfully converted image: ${src.substring(0, 50)}...`);
-        } else {
-          console.warn(`Failed to convert image: ${src}`);
-          // Hide broken images
-          img.style.display = 'none';
+        // Enhanced image processing with better error handling (for local development only)
+        const imgs = Array.from(element.querySelectorAll('img'));
+        
+        // Collect all image URLs for batch processing
+        const imageUrls = imgs
+          .map(img => img.getAttribute('src'))
+          .filter(src => src && !src.startsWith('data:'));
+        
+        console.log(`Processing ${imageUrls.length} images for PDF generation...`);
+        
+        // Process images with better error handling
+        const imageDataUrls = new Map();
+        
+        for (const url of imageUrls) {
+          try {
+            // Clean URL to avoid duplicate parameters
+            const cleanUrl = url.split('?')[0];
+            
+            // Use the clean URL directly for better performance
+            const dataUrl = cleanUrl;
+            
+            if (dataUrl) {
+              imageDataUrls.set(url, dataUrl);
+              console.log(`✅ Image processed: ${cleanUrl.substring(0, 50)}...`);
+            }
+          } catch (error) {
+            console.error(`❌ Error processing image ${url}:`, error);
+          }
         }
-      });
+        
+        // Apply the converted images to the DOM
+        imgs.forEach(img => {
+          const src = img.getAttribute('src');
+          if (!src || src.startsWith('data:')) return;
+          
+          const dataUrl = imageDataUrls.get(src);
+          if (dataUrl) {
+            originalSrcs.set(img, src);
+            img.setAttribute('src', dataUrl);
+            console.log(`Successfully converted image: ${src.substring(0, 50)}...`);
+          } else {
+            console.warn(`Failed to convert image: ${src}`);
+            // Hide broken images
+            img.style.display = 'none';
+          }
+        });
+      }
 
       // Ensure web fonts are loaded for crisp text before snapshot
       if (document.fonts && document.fonts.ready) {
@@ -488,12 +519,8 @@ import html2pdf from "html2pdf.js";
       console.error("PDF generation failed:", error);
       
       // Restore original src values even on error
-      const imgs = Array.from(element.querySelectorAll('img'));
-      imgs.forEach(img => {
-        const originalSrc = img.getAttribute('data-original-src');
-        if (originalSrc) {
-          img.setAttribute('src', originalSrc);
-        }
+      originalSrcs.forEach((src, img) => {
+        img.setAttribute('src', src);
       });
 
       // Unlock layout
